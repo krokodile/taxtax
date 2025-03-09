@@ -1,0 +1,16 @@
+# IDE files
+.idea/
+.vscode/
+*.sublime-*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.local
