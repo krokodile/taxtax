@@ -59,7 +59,7 @@
             <table id="results-table">
                 <thead>
                     <tr>
-                        <th>Metric</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,11 +75,11 @@ import { resetData, fillTestData } from './js/utils.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
-    employment: { label: 'Employment Income' },
-    soleProprietorship: { label: 'Self-employed' },
-    rental: { label: 'Rental Income' },
-    investment: { label: 'Investment Income' },
-    pension: { label: 'Pension Income' }
+    employment: { label: 'Employment Income', disabled: false },
+    soleProprietorship: { label: 'Self-employed', disabled: false },
+    rental: { label: 'Rental Income', disabled: true },
+    capitalGains: { label: 'Capital Gains', disabled: true },
+    pension: { label: 'Pension Income', disabled: true }
 };
 
 // ... (rest of the code remains unchanged) ...
@@ -459,12 +459,18 @@ function renderQuestions() {
     if (selectedCountries.length > 0) {
         const firstCountry = selectedCountries[0];
         if (taxData[firstCountry]) {
-            taxData[firstCountry].questions.forEach(question => {
-                if (question.common) {
-                    renderQuestion(question, null, currentValues, addedQuestions);
-                    hasQuestions = true;
-                }
+            // Create a row for common questions
+            const commonQuestionsRow = document.createElement('div');
+            commonQuestionsRow.classList.add('questions-row');
+            
+            // Filter and render common questions
+            const commonQuestions = taxData[firstCountry].questions.filter(q => q.common);
+            commonQuestions.forEach(question => {
+                renderQuestion(question, null, currentValues, addedQuestions, commonQuestionsRow);
+                hasQuestions = true;
             });
+            
+            questionsContainer.appendChild(commonQuestionsRow);
         }
     }
 
@@ -490,7 +496,7 @@ function renderQuestions() {
             }
             if (!shouldDisplay) return;
 
-            renderQuestion(question, countryCode, currentValues, addedQuestions);
+            renderQuestion(question, countryCode, currentValues, addedQuestions, questionsContainer);
             hasQuestions = true;
         });
     });
@@ -506,7 +512,7 @@ function renderQuestions() {
 }
 
 // Helper function to render a single question
-function renderQuestion(question, countryCode, currentValues, addedQuestions) {
+function renderQuestion(question, countryCode, currentValues, addedQuestions, container) {
     // For common questions, don't use country prefix in ID
     const elementId = question.common ? question.id : `${countryCode}-${question.id}`;
     
@@ -515,9 +521,14 @@ function renderQuestion(question, countryCode, currentValues, addedQuestions) {
 
     const questionDiv = document.createElement('div');
     questionDiv.classList.add('question');
+    
+    // Add inline class for common questions
+    if (question.common) {
+        questionDiv.classList.add('inline');
+    }
 
     const label = document.createElement('label');
-    label.textContent = question.label + ': ';
+    label.textContent = question.label + (question.type === 'segmented' ? '' : ':');
     label.setAttribute('for', elementId);
     questionDiv.appendChild(label);
 
@@ -591,7 +602,7 @@ function renderQuestion(question, countryCode, currentValues, addedQuestions) {
         questionDiv.appendChild(inputElement);
     }
 
-    questionsContainer.appendChild(questionDiv);
+    container.appendChild(questionDiv);
 
     // Restore previous values for non-segmented controls
     if (inputElement && currentValues[elementId] !== undefined) {
@@ -680,11 +691,22 @@ function renderIncomeTypes() {
             checkbox.id = `income-${incomeTypeId}`;
             checkbox.dataset.incomeType = incomeTypeId;
             
+            // Disable checkbox if income type is disabled
+            if (incomeType.disabled) {
+                checkbox.disabled = true;
+                checkbox.style.opacity = '0.5';
+            }
+            
             const label = document.createElement('label');
             label.textContent = incomeType.label;
             label.setAttribute('for', `income-${incomeTypeId}`);
             label.style.marginBottom = '0';
             label.style.marginLeft = '4px';
+            
+            // Style label if income type is disabled
+            if (incomeType.disabled) {
+                label.style.opacity = '0.5';
+            }
             
             checkboxContainer.appendChild(checkbox);
             checkboxContainer.appendChild(label);
@@ -718,7 +740,16 @@ function renderIncomeTypes() {
             additionalContainer.style.display = 'flex';
             additionalContainer.style.alignItems = 'center';
             additionalContainer.style.gap = '8px';
-            additionalContainer.style.visibility = 'hidden';
+            
+            // Add "Not yet coded" message for disabled income types
+            if (incomeType.disabled) {
+                const noteSpan = document.createElement('span');
+                noteSpan.textContent = 'Not coded yet, will be added. Or maybe not...';
+                noteSpan.style.color = 'var(--airbnb-gray)';
+                noteSpan.style.fontSize = '11px';
+                noteSpan.style.fontStyle = 'italic';
+                additionalContainer.appendChild(noteSpan);
+            }
             
             // Add regime selection and years in business for sole proprietorship
             if (incomeTypeId === 'soleProprietorship' && (selectedCountries.includes('pt') || selectedCountries.includes('fr'))) {
@@ -1593,7 +1624,7 @@ function displayResults(results, isDetailedView) {
     }
 
     const headerRow = resultsTable.insertRow();
-    headerRow.insertCell().textContent = 'Metric';
+    headerRow.appendChild(document.createElement('th'));
 
     selectedCountries.forEach(countryCode => {
         const th = document.createElement('th');

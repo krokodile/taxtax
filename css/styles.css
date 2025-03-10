@@ -594,3 +594,36 @@ hr {
     padding-top: 6px;
     padding-bottom: 6px;
 }
+
+/* Questions layout */
+.questions-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 12px;
+}
+
+.question {
+    margin-bottom: 6px;
+}
+
+.question.inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.question.inline label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.question.inline input[type="number"] {
+    width: 60px;
+    margin-bottom: 0;
+}
+
+.question.inline .segmented-control {
+    margin-bottom: 0;
+}
