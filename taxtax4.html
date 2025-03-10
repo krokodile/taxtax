@@ -489,6 +489,48 @@
             margin-bottom: 20px;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Currency selector styles */
+        .currency-control {
+            background-color: var(--airbnb-light-gray);
+            padding: 2px;
+            border-radius: 28px;
+            display: inline-flex;
+            gap: 2px;
+            margin: 0;
+        }
+
+        .currency-control button {
+            background: none;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--airbnb-dark-gray);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0;
+            min-width: 76px;
+            white-space: nowrap;
+        }
+
+        .currency-control button:hover {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .currency-control button.active {
+            background-color: var(--airbnb-teal);
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Test data button */
         .test-data-button {
             background-color: var(--airbnb-light-gray);
             color: var(--airbnb-dark-gray);
@@ -538,8 +580,19 @@
 <body>
     <div class="container compact">
         <div class="header-container">
-            <h1>Tax Calculator</h1>
-            <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
+            <div class="header-left">
+                <h1>Tax Calculator</h1>
+            </div>
+            <div class="header-right">
+                <div class="currency-selector">
+                    <div class="segmented-control currency-control">
+                        <button type="button" value="EUR" class="active">€ EUR</button>
+                        <button type="button" value="GBP">£ GBP</button>
+                        <button type="button" value="USD">$ USD</button>
+                    </div>
+                </div>
+                <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
+            </div>
         </div>
 
         <div class="card">
@@ -650,6 +703,29 @@ const taxData = {
             { id: 'children', label: 'Number of Children', type: 'number', common: true },
             { id: 'nhrStatus', label: 'NHR Status', type: 'checkbox' },
             { id: 'ifici', label: 'IFICI', type: 'checkbox' }
+        ]
+    },
+    uk: {
+        name: 'United Kingdom',
+        incomeTaxBrackets: [
+            { threshold: 0, rate: 0 },
+            { threshold: 12570, rate: 0.20 },
+            { threshold: 50270, rate: 0.40 },
+            { threshold: 125140, rate: 0.45 }
+        ],
+        socialSecurity: {
+            primaryThreshold: 12570,  // Primary threshold for National Insurance
+            upperEarningsLimit: 50270, // Upper earnings limit
+            primaryRate: 0.08,        // 8% rate between primary threshold and upper earnings limit
+            upperRate: 0.02           // 2% rate above upper earnings limit
+        },
+        questions: [
+            { id: 'maritalStatus', label: 'Marital Status', type: 'segmented', common: true, options: [
+                { value: 'Single', text: 'Single' },
+                { value: 'Married', text: 'Married' }
+            ]},
+            { id: 'children', label: 'Number of Children', type: 'number', common: true },
+            { id: 'blindPersonsAllowance', label: 'Blind Person\'s Allowance', type: 'checkbox' }
         ]
     }
 };
@@ -868,7 +944,10 @@ function renderTaxBenefits() {
         es: [
             { id: "beckhamLaw", label: "Beckham's Law (24% flat tax rate up to €600,000)", type: "checkbox" }
         ],
-        fr: [] // France has no specific tax benefits in this implementation
+        fr: [], // France has no specific tax benefits in this implementation
+        uk: [
+            { id: "blindPersonsAllowance", label: "Blind Person's Allowance (£3,070 additional allowance)", type: "checkbox" }
+        ]
     };
 
     // Create a table for better organization
@@ -954,6 +1033,8 @@ function renderTaxBenefits() {
                     description = 'International Fund for Investment in Cinema and Audiovisual provides a 20% flat tax rate for qualifying professionals.';
                 } else if (benefit.id === 'beckhamLaw') {
                     description = 'Special tax regime for foreign workers with a flat 24% rate up to €600,000 (47% above).';
+                } else if (benefit.id === 'blindPersonsAllowance') {
+                    description = 'Blind Person\'s Allowance provides an additional allowance of £3,070.';
                 }
                 
                 descriptionCell.textContent = description;
@@ -1029,7 +1110,7 @@ function renderQuestions() {
             if (question.common) return;
             
             // Skip tax benefit questions as they're in a separate section
-            if (question.id === "nhrStatus" || question.id === "ifici" || question.id === "beckhamLaw") {
+            if (question.id === "nhrStatus" || question.id === "ifici" || question.id === "beckhamLaw" || question.id === "blindPersonsAllowance") {
                 return;
             }
 
@@ -1739,6 +1820,36 @@ function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0) {
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
+function calculateUKNationalInsurance(totalIncome) {
+    const rates = taxData.uk.socialSecurity;
+    let socialSecurityNote = "";
+    
+    // Calculate National Insurance contributions
+    let niContribution = 0;
+    
+    // No NI on income below primary threshold
+    if (totalIncome <= rates.primaryThreshold) {
+        socialSecurityNote = "Below primary threshold - no National Insurance due";
+    } else {
+        // Calculate NI on income between primary threshold and upper earnings limit
+        const middleBandIncome = Math.min(totalIncome, rates.upperEarningsLimit) - rates.primaryThreshold;
+        if (middleBandIncome > 0) {
+            const middleBandNI = middleBandIncome * rates.primaryRate;
+            niContribution += middleBandNI;
+            socialSecurityNote = `${(rates.primaryRate * 100).toFixed(0)}% on £${rates.primaryThreshold.toLocaleString()} to £${Math.min(totalIncome, rates.upperEarningsLimit).toLocaleString()}: £${Math.round(middleBandNI).toLocaleString()}`;
+        }
+        
+        // Calculate NI on income above upper earnings limit
+        if (totalIncome > rates.upperEarningsLimit) {
+            const upperBandIncome = totalIncome - rates.upperEarningsLimit;
+            const upperBandNI = upperBandIncome * rates.upperRate;
+            niContribution += upperBandNI;
+            socialSecurityNote += `, ${(rates.upperRate * 100).toFixed(0)}% on income above £${rates.upperEarningsLimit.toLocaleString()}: £${Math.round(upperBandNI).toLocaleString()}`;
+        }
+    }
+    
+    return { socialSecurity: niContribution.toFixed(2), socialSecurityNote };
+}
 
 function calculateTaxesForCountry(countryCode, totalIncome) {
     const results = {};
@@ -1814,6 +1925,44 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
         if (yearsInBusiness > 0) {
             results.taxRegimeNote += `, Years in Business: ${yearsInBusiness}`;
         }
+    } else if (countryCode === 'uk') {
+        // UK tax calculations
+        let taxableBase = totalIncome;
+        let taxRegimeNote = "";
+        
+        // Apply Blind Person's Allowance if selected
+        const blindPersonsAllowance = document.getElementById('uk-blindPersonsAllowance')?.checked || false;
+        if (blindPersonsAllowance) {
+            taxableBase -= 3070; // 2024 Blind Person's Allowance
+            taxRegimeNote = "Blind Person's Allowance: £3,070";
+        }
+        
+        // Personal Allowance reduction for high earners
+        const personalAllowance = 12570; // 2024 Personal Allowance
+        let adjustedPersonalAllowance = personalAllowance;
+        
+        if (totalIncome > 100000) {
+            // Reduce personal allowance by £1 for every £2 over £100,000
+            const reduction = Math.min(personalAllowance, Math.floor((totalIncome - 100000) / 2));
+            adjustedPersonalAllowance -= reduction;
+            
+            if (taxRegimeNote) {
+                taxRegimeNote += ", ";
+            }
+            taxRegimeNote += `Reduced Personal Allowance: £${adjustedPersonalAllowance.toLocaleString()}`;
+        }
+        
+        // Adjust tax brackets to account for the adjusted personal allowance
+        const adjustedBrackets = [...taxData[countryCode].incomeTaxBrackets];
+        adjustedBrackets[1].threshold = adjustedPersonalAllowance;
+        
+        results.taxableBase = taxableBase;
+        results.taxRegimeNote = taxRegimeNote;
+        
+        // Calculate income tax using the adjusted brackets
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(taxableBase, adjustedBrackets);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
     } else {
         results.taxableBase = totalIncome;
     }
@@ -1834,6 +1983,8 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
         // French tax calculation was already done in the previous section
         // We don't need to do anything here as results.incomeTax and results.incomeTaxDetails
         // were already set in the French-specific section above
+    } else if (countryCode === 'uk') {
+        // UK tax calculation was already done in the UK-specific section above
     } else {
         // Default tax calculation for any other country
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(results.taxableBase, taxData[countryCode].incomeTaxBrackets);
@@ -1859,6 +2010,10 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
         results.socialSecurityNote = socialSecurityNote;
     } else if (countryCode === 'es') {
         const { socialSecurity, socialSecurityNote } = calculateSpanishSocialSecurity(totalIncome);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    } else if (countryCode === 'uk') {
+        const { socialSecurity, socialSecurityNote } = calculateUKNationalInsurance(totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     } else {
@@ -1889,11 +2044,12 @@ function updateCountrySelects() {
     countrySelectsContainer.innerHTML = ''; // Clear previous content
 
     // Render buttons for each country with flags
-    const countries = ['fr', 'es', 'pt'];
+    const countries = ['fr', 'es', 'pt', 'uk'];
     const countryFlags = {
         fr: '🇫🇷',
         es: '🇪🇸',
-        pt: '🇵🇹'
+        pt: '🇵🇹',
+        uk: '🇬🇧'
     };
     countries.forEach(countryCode => {
         const button = document.createElement('button');
@@ -1947,7 +2103,8 @@ function displayResults(results) {
     const countryFlags = {
         fr: '🇫🇷',
         es: '🇪🇸',
-        pt: '🇵🇹'
+        pt: '🇵🇹',
+        uk: '🇬🇧'
     };
 
     selectedCountries.forEach(countryCode => {
@@ -2283,6 +2440,7 @@ function fillTestData() {
     toggleCountry('fr');
     toggleCountry('es');
     toggleCountry('pt');
+    toggleCountry('uk');
 
     // Set Sole Proprietorship income
     const soleProprietorshipCheckbox = document.getElementById('income-soleProprietorship');
@@ -2345,6 +2503,7 @@ function fillTestData() {
 // --- Variables ---
 let selectedCountries = [];
 let totalIncome = 0;
+let selectedCurrency = 'EUR'; // Default currency
 
 // DOM Elements (will be initialized in DOMContentLoaded)
 let countrySelectsContainer;
@@ -2359,6 +2518,20 @@ document.addEventListener('DOMContentLoaded', () => {
     questionsContainer = document.getElementById('questions-container');
     calculateButton = document.getElementById('calculate-button');
     resultsTable = document.getElementById('results-table');
+    
+    // Add currency selector event listeners
+    const currencyButtons = document.querySelectorAll('.currency-control button');
+    currencyButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all currency buttons
+            currencyButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            button.classList.add('active');
+            // Update selected currency
+            selectedCurrency = button.value;
+            // Here we'll later add code to update all displayed amounts
+        });
+    });
     
     // Add event listener for fill test data button
     const fillTestDataButton = document.getElementById('fill-test-data');

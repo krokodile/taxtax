@@ -114,39 +114,24 @@ function calculateIncomeTax(taxableBase, nhr, ifici) {
 }
 
 // Calculate Portuguese social security
-function calculateSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
+function calculateSocialSecurity(totalIncome) {
     const IAS = 509.26; // 2024 IAS value
     const monthlyCeiling = 12 * IAS;
     const monthlyFloor = IAS;
-    let taxableBaseForSS = 0;
+    let monthlyTaxableBase = totalIncome / 12;
     let socialSecurityNote = "";
 
-    // Apply discount for the first three years
-    let discountFactor = 1;
-    if (yearsInBusiness === 1) {
-        discountFactor = 0; // 50% reduction in the first year
-    } 
-
-    if (document.getElementById('income-soleProprietorship')?.checked) {
-        if (regime === 'Simplified Regime') {
-            taxableBaseForSS = (ptSoleProprietorshipIncome * 0.70 * discountFactor) / 12;
-        } else {
-            taxableBaseForSS = (ptSoleProprietorshipIncome * discountFactor) / 12;
-        }
-    }
-    // Add *other* income to the MONTHLY SS taxable base
-    taxableBaseForSS += (totalIncome - ptSoleProprietorshipIncome) / 12;
-
     // Apply ceiling/floor *monthly*
-    if (taxableBaseForSS > monthlyCeiling) {
-        taxableBaseForSS = monthlyCeiling;
+    if (monthlyTaxableBase > monthlyCeiling) {
+        monthlyTaxableBase = monthlyCeiling;
         socialSecurityNote = "Ceiling Reached";
-    } else if (taxableBaseForSS < monthlyFloor) {
-        taxableBaseForSS = monthlyFloor;
+    } else if (monthlyTaxableBase < monthlyFloor) {
+        monthlyTaxableBase = monthlyFloor;
         socialSecurityNote = "Floor Applied";
     }
 
-    const socialSecurity = taxableBaseForSS * 0.214 * 12;
+    // Use only employee rate of 11% instead of combined 21.4%
+    const socialSecurity = monthlyTaxableBase * 0.11 * 12;
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
@@ -191,7 +176,7 @@ function calculateTaxes(totalIncome) {
     results.incomeTaxDetails = incomeTaxDetails;
 
     // Calculate social security
-    const { socialSecurity, socialSecurityNote } = calculateSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness);
+    const { socialSecurity, socialSecurityNote } = calculateSocialSecurity(totalIncome);
     results.socialSecurity = socialSecurity;
     results.socialSecurityNote = socialSecurityNote;
 
