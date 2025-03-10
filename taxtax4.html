@@ -947,9 +947,10 @@ function calculateIncomeTaxES(taxableBase, beckhamLaw) {
 }
 
 function calculateSocialSecurityES(totalIncome, commonData) {
-    // Get autónomo status from user input
-    const isAutonomo = commonData.questions?.es?.isAutonomo || false;
-    const firstYearAutonomo = commonData.questions?.es?.firstYearAutonomo || false;
+    // Use the common hasSoleProprietorship flag instead of Spain-specific isAutonomo
+    const isAutonomo = commonData.hasSoleProprietorship || false;
+    // Use the common yearsInBusiness field instead of Spain-specific firstYearAutonomo
+    const firstYearAutonomo = commonData.yearsInBusiness === 1;
     let socialSecurityNote = "";
     
     if (isAutonomo) {
@@ -1052,7 +1053,7 @@ function calculateSocialSecurityPT(ptSoleProprietorshipIncome, totalIncome, regi
         taxableBaseForSS = monthlyCeiling;
         socialSecurityNote = "Ceiling Reached";
     } else if (taxableBaseForSS < monthlyFloor) {
-        taxableBaseForSS = monthlyFloor;
+        taxableBaseForSS = monthlyFloor * discountFactor;
         socialSecurityNote = "Floor Applied";
     }
 
@@ -1277,10 +1278,7 @@ function collectCommonData() {
     
     // Initialize questions object for each country
     commonData.questions = {
-        es: {
-            isAutonomo: document.getElementById('es-isAutonomo')?.checked || false,
-            firstYearAutonomo: document.getElementById('es-firstYearAutonomo')?.checked || false
-        },
+        es: {},
         pt: {},
         fr: {},
         uk: {},
