@@ -836,6 +836,75 @@ function renderIncomeTypes() {
 }
 
 // --- 5. Calculation and Result Display ---
+
+// --- Common/Generic Functions ---
+function calculateTotalIncome() {
+    let total = 0;
+    console.log('Calculating total income...');
+    // Get all income type checkboxes
+    const incomeCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="income-"]');
+    console.log('Found checkboxes:', incomeCheckboxes.length);
+    
+    incomeCheckboxes.forEach(checkbox => {
+        console.log('Checking checkbox:', checkbox.id, 'checked:', checkbox.checked);
+        if (checkbox.checked) {
+            const incomeType = checkbox.dataset.incomeType;
+            const amountInput = document.getElementById(`amount-${incomeType}`);
+            console.log('Amount input:', amountInput?.value);
+            if (amountInput) {
+                const amount = parseFloat(amountInput.value) || 0;
+                total += amount;
+                console.log('Added amount:', amount, 'Total:', total);
+            }
+        }
+    });
+    
+    console.log('Final total:', total);
+    return total;
+}
+
+function calculateIncomeTax(taxableBase, brackets) {
+    const incomeTaxDetails = [];
+    let totalIncomeTax = 0;
+    let remainingIncome = taxableBase;
+
+    brackets.forEach((bracket, index) => {
+        const nextThreshold = index < brackets.length - 1 ? brackets[index + 1].threshold : Infinity;
+        const taxableAtThisRate = Math.min(remainingIncome, nextThreshold - bracket.threshold);
+        const taxAtThisRate = taxableAtThisRate * bracket.rate;
+        totalIncomeTax += taxAtThisRate;
+
+        if (taxableAtThisRate > 0) {
+            incomeTaxDetails.push({
+                rate: bracket.rate,
+                taxableAmount: taxableAtThisRate.toFixed(2),
+                taxAmount: taxAtThisRate.toFixed(2)
+            });
+        }
+        remainingIncome -= taxableAtThisRate;
+    });
+
+    return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
+}
+
+function calculateOtherCountriesSocialSecurity(totalIncome) {
+     const IAS = 509.26; // 2024 IAS value
+     const monthlyCeiling = 12 * IAS;
+     const monthlyFloor = IAS;
+     let monthlyTaxableBase = totalIncome / 12;
+     let socialSecurityNote = "";
+     if(monthlyTaxableBase > monthlyCeiling){
+        monthlyTaxableBase = monthlyCeiling;
+        socialSecurityNote = "Ceiling Reached";
+     } else if (monthlyTaxableBase < monthlyFloor){
+        monthlyTaxableBase = monthlyFloor;
+        socialSecurityNote = "Floor applied";
+     }
+     let socialSecurity = monthlyTaxableBase * 0.214 * 12; //always use 0.214 - other countries are treated as independent workers
+    return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
+}
+
+// --- Spain (ES) Functions ---
 function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
     if (beckhamLaw) {
         // Beckham Law: Flat rate (24% up to 600,000, 47% above)
@@ -891,9 +960,26 @@ function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
         return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
     }
 }
-// --- Helper Functions ---
 
+function calculateSpanishSocialSecurity(totalIncome) {
+    const monthlyCeiling = 4720.50;  // Monthly ceiling for 2024
+    const rate = 0.0635;          // Combined rate (simplified)
+    let socialSecurityNote = "";
 
+    let monthlyTaxableBase = totalIncome / 12; // Calculate monthly base
+
+    if (monthlyTaxableBase > monthlyCeiling) {
+        monthlyTaxableBase = monthlyCeiling;
+        socialSecurityNote = "Ceiling Reached";
+    }
+    //No floor implementation
+    const monthlyContribution = monthlyTaxableBase * rate;
+    const annualContribution = monthlyContribution * 12;
+
+    return { socialSecurity: annualContribution.toFixed(2), socialSecurityNote };
+}
+
+// --- Portugal (PT) Functions ---
 function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
     const IAS = 509.26; // 2024 IAS value
     const monthlyCeiling = 12 * IAS;
@@ -934,22 +1020,6 @@ function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalInco
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
-function calculateOtherCountriesSocialSecurity(totalIncome) {
-     const IAS = 509.26; // 2024 IAS value
-     const monthlyCeiling = 12 * IAS;
-     const monthlyFloor = IAS;
-     let monthlyTaxableBase = totalIncome / 12;
-     let socialSecurityNote = "";
-     if(monthlyTaxableBase > monthlyCeiling){
-        monthlyTaxableBase = monthlyCeiling;
-        socialSecurityNote = "Ceiling Reached";
-     } else if (monthlyTaxableBase < monthlyFloor){
-        monthlyTaxableBase = monthlyFloor;
-        socialSecurityNote = "Floor applied";
-     }
-     let socialSecurity = monthlyTaxableBase * 0.214 * 12; //always use 0.214 - other countries are treated as independent workers
-    return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
-}
 function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
     console.log('Calculating Taxable Base for Portugal');
     console.log('Sole Proprietorship Income:', ptSoleProprietorshipIncome);
@@ -981,56 +1051,6 @@ function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime,
     return taxableBase;
 }
 
-// --- Main Calculation Function ---
-function calculateTotalIncome() {
-    let total = 0;
-    console.log('Calculating total income...');
-    // Get all income type checkboxes
-    const incomeCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="income-"]');
-    console.log('Found checkboxes:', incomeCheckboxes.length);
-    
-    incomeCheckboxes.forEach(checkbox => {
-        console.log('Checking checkbox:', checkbox.id, 'checked:', checkbox.checked);
-        if (checkbox.checked) {
-            const incomeType = checkbox.dataset.incomeType;
-            const amountInput = document.getElementById(`amount-${incomeType}`);
-            console.log('Amount input:', amountInput?.value);
-            if (amountInput) {
-                const amount = parseFloat(amountInput.value) || 0;
-                total += amount;
-                console.log('Added amount:', amount, 'Total:', total);
-            }
-        }
-    });
-    
-    console.log('Final total:', total);
-    return total;
-}
-
-function calculateIncomeTax(taxableBase, brackets) {
-    const incomeTaxDetails = [];
-    let totalIncomeTax = 0;
-    let remainingIncome = taxableBase;
-
-    brackets.forEach((bracket, index) => {
-        const nextThreshold = index < brackets.length - 1 ? brackets[index + 1].threshold : Infinity;
-        const taxableAtThisRate = Math.min(remainingIncome, nextThreshold - bracket.threshold);
-        const taxAtThisRate = taxableAtThisRate * bracket.rate;
-        totalIncomeTax += taxAtThisRate;
-
-        if (taxableAtThisRate > 0) {
-            incomeTaxDetails.push({
-                rate: bracket.rate,
-                taxableAmount: taxableAtThisRate.toFixed(2),
-                taxAmount: taxAtThisRate.toFixed(2)
-            });
-        }
-        remainingIncome -= taxableAtThisRate;
-    });
-
-    return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
-}
-
 function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
     if (nhr) {
         // NHR: Flat rate of 20% on Portuguese-sourced income
@@ -1058,26 +1078,7 @@ function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
     }
 }
 
-
-
-function calculateSpanishSocialSecurity(totalIncome) {
-    const monthlyCeiling = 4720.50;  // Monthly ceiling for 2024
-    const rate = 0.0635;          // Combined rate (simplified)
-    let socialSecurityNote = "";
-
-    let monthlyTaxableBase = totalIncome / 12; // Calculate monthly base
-
-    if (monthlyTaxableBase > monthlyCeiling) {
-        monthlyTaxableBase = monthlyCeiling;
-        socialSecurityNote = "Ceiling Reached";
-    }
-    //No floor implementation
-    const monthlyContribution = monthlyTaxableBase * rate;
-    const annualContribution = monthlyContribution * 12;
-
-    return { socialSecurity: annualContribution.toFixed(2), socialSecurityNote };
-}
-
+// --- France (FR) Functions ---
 function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0) {
     const rates = taxData.fr.socialSecurity;
     let socialSecurityNote = "";
@@ -1121,6 +1122,7 @@ function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0) {
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
+// --- UK Functions ---
 function calculateUKNationalInsurance(totalIncome) {
     const rates = taxData.uk.socialSecurity;
     let socialSecurityNote = "";
@@ -1152,6 +1154,7 @@ function calculateUKNationalInsurance(totalIncome) {
     return { socialSecurity: niContribution.toFixed(2), socialSecurityNote };
 }
 
+// --- Main Calculation Functions ---
 function calculateTaxesForCountry(countryCode, totalIncome) {
     const results = {};
     let ptSoleProprietorshipIncome = 0;
