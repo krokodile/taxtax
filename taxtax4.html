@@ -885,7 +885,7 @@ function calculateIncomeTax(taxableBase, brackets) {
     return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
 }
 
-function calculateOtherCountriesSocialSecurity(totalIncome) {
+function calculateOtherSocialSecurity(totalIncome) {
      const IAS = 509.26; // 2024 IAS value
      const monthlyCeiling = 12 * IAS;
      const monthlyFloor = IAS;
@@ -903,7 +903,7 @@ function calculateOtherCountriesSocialSecurity(totalIncome) {
 }
 
 // --- Spain (ES) Functions ---
-function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
+function calculateIncomeTaxES(taxableBase, beckhamLaw) {
     if (beckhamLaw) {
         // Beckham Law: Flat rate (24% up to 600,000, 47% above)
         let totalIncomeTax = 0;
@@ -959,7 +959,7 @@ function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
     }
 }
 
-function calculateSpanishSocialSecurity(totalIncome) {
+function calculateSocialSecurityES(totalIncome) {
     const monthlyCeiling = 4720.50;  // Monthly ceiling for 2024
     const rate = 0.0635;          // Combined rate (simplified)
     let socialSecurityNote = "";
@@ -978,7 +978,7 @@ function calculateSpanishSocialSecurity(totalIncome) {
 }
 
 // --- Portugal (PT) Functions ---
-function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness, hasSoleProprietorship) {
+function calculateSocialSecurityPT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness, hasSoleProprietorship) {
     const IAS = 509.26; // 2024 IAS value
     const monthlyCeiling = 12 * IAS;
     const monthlyFloor = IAS;
@@ -1049,7 +1049,7 @@ function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime,
     return taxableBase;
 }
 
-function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
+function calculateIncomeTaxPT(taxableBase, nhr, ifici) {
     if (nhr) {
         // NHR: Flat rate of 20% on Portuguese-sourced income
         const totalIncomeTax = taxableBase * 0.20;
@@ -1077,7 +1077,7 @@ function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
 }
 
 // --- France (FR) Functions ---
-function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0, hasSoleProprietorship = false) {
+function calculateSocialSecurityFR(totalIncome, yearsInBusiness = 0, hasSoleProprietorship = false) {
     const rates = taxData.fr.socialSecurity;
     let socialSecurityNote = "";
     
@@ -1121,7 +1121,7 @@ function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0, hasSole
 }
 
 // --- UK Functions ---
-function calculateUKNationalInsurance(totalIncome) {
+function calculateSocialSecurityUK(totalIncome) {
     const rates = taxData.uk.socialSecurity;
     let socialSecurityNote = "";
     
@@ -1232,12 +1232,12 @@ function calculateCountrySpecificData(countryCode, commonData) {
         // Calculate Portuguese income tax
         const nhr = commonData.taxBenefits.pt.nhr;
         const ifici = commonData.taxBenefits.pt.ifici;
-        const { totalIncomeTax, incomeTaxDetails } = calculatePortugueseIncomeTax(results.taxableBase, nhr, ifici);
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPT(results.taxableBase, nhr, ifici);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
         
         // Calculate Portuguese social security
-        const { socialSecurity, socialSecurityNote } = calculatePortugueseSocialSecurity(
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityPT(
             commonData.soleProprietorshipIncome, 
             commonData.totalIncome, 
             regime, 
@@ -1283,7 +1283,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
         }
         
         // Calculate French social security
-        const { socialSecurity, socialSecurityNote } = calculateFrenchSocialSecurity(
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityFR(
             commonData.totalIncome, 
             commonData.yearsInBusiness,
             commonData.hasSoleProprietorship
@@ -1331,7 +1331,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
         results.incomeTaxDetails = incomeTaxDetails;
         
         // Calculate UK National Insurance
-        const { socialSecurity, socialSecurityNote } = calculateUKNationalInsurance(commonData.totalIncome);
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityUK(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     } 
@@ -1340,12 +1340,12 @@ function calculateCountrySpecificData(countryCode, commonData) {
         const beckhamLaw = commonData.taxBenefits.es.beckhamLaw;
         
         // Calculate Spanish income tax
-        const { totalIncomeTax, incomeTaxDetails } = calculateSpanishIncomeTax(results.taxableBase, beckhamLaw);
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxES(results.taxableBase, beckhamLaw);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
         
         // Calculate Spanish social security
-        const { socialSecurity, socialSecurityNote } = calculateSpanishSocialSecurity(commonData.totalIncome);
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityES(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     }
@@ -1356,7 +1356,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
         results.incomeTaxDetails = incomeTaxDetails;
         
         // Default social security calculation
-        const { socialSecurity, socialSecurityNote } = calculateOtherCountriesSocialSecurity(commonData.totalIncome);
+        const { socialSecurity, socialSecurityNote } = calculateOtherSocialSecurity(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     }
