@@ -16,6 +16,8 @@ export const taxData = {
             { value: 'Married', text: 'Married' }
         ]},
         { id: 'children', label: 'Number of Children', type: 'number', common: true },
-        { id: 'beckhamLaw', label: "Beckham's Law", type: 'checkbox' }
+        { id: 'beckhamLaw', label: "Beckham's Law", type: 'checkbox' },
+        { id: 'isAutonomo', label: "Self-employed (Autónomo)", type: 'checkbox' },
+        { id: 'firstYearAutonomo', label: "First year as Autónomo", type: 'checkbox', dependsOn: { id: 'isAutonomo', value: true } }
     ]
 }; 
