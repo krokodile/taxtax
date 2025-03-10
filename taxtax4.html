@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container compact">
+    <div class="container">
         <div class="header-container">
             <div class="header-left">
                 <h1>Tax Calculator</h1>
@@ -16,8 +16,8 @@
                 <div class="currency-selector">
                     <div class="segmented-control currency-control">
                         <button type="button" value="EUR" class="active">€ EUR</button>
-                        <button type="button" value="GBP">£ GBP</button>
-                        <button type="button" value="USD">$ USD</button>
+                        <!--<button type="button" value="GBP">£ GBP</button>-->
+                        <!--<button type="button" value="USD">$ USD</button>-->
                     </div>
                 </div>
                 <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
@@ -33,7 +33,7 @@
         </div>
 
         <div class="card">
-            <h2>Income Types</h2>
+            
             <div id="income-types"></div>
             
             <h2>Tax Benefits</h2>
@@ -76,7 +76,7 @@ import { resetData, fillTestData } from './js/utils.js';
 // --- 1. Data and Constants ---
 const incomeTypes = {
     employment: { label: 'Employment Income' },
-    soleProprietorship: { label: 'Sole Proprietorship Income' },
+    soleProprietorship: { label: 'Self-employed' },
     rental: { label: 'Rental Income' },
     investment: { label: 'Investment Income' },
     pension: { label: 'Pension Income' }
@@ -292,6 +292,9 @@ function renderTaxBenefits() {
         fr: [], // France has no specific tax benefits in this implementation
         uk: [
             { id: "blindPersonsAllowance", label: "Blind Person's Allowance (£3,070 additional allowance)", type: "checkbox" }
+        ],
+        cy: [
+            { id: "highSkilledResident", label: "High-Skilled Resident (50% tax exemption)", type: "checkbox" }
         ]
     };
 
@@ -374,6 +377,8 @@ function renderTaxBenefits() {
                     description = 'Special tax regime for foreign workers with a flat 24% rate up to €600,000 (47% above).';
                 } else if (benefit.id === 'blindPersonsAllowance') {
                     description = 'Blind Person\'s Allowance provides an additional allowance of £3,070.';
+                } else if (benefit.id === 'highSkilledResident') {
+                    description = 'High-Skilled Resident (50% tax exemption) provides a 50% tax exemption for high-skilled residents.';
                 }
                 
                 descriptionCell.textContent = description;
@@ -449,7 +454,7 @@ function renderQuestions() {
             if (question.common) return;
             
             // Skip tax benefit questions as they're in a separate section
-            if (question.id === "nhrStatus" || question.id === "ifici" || question.id === "beckhamLaw" || question.id === "blindPersonsAllowance") {
+            if (question.id === "nhrStatus" || question.id === "ifici" || question.id === "beckhamLaw" || question.id === "blindPersonsAllowance" || question.id === "highSkilledResident") {
                 return;
             }
 
@@ -604,7 +609,7 @@ function renderIncomeTypes() {
     const headerRow = document.createElement('tr');
     
     const typeHeader = document.createElement('th');
-    typeHeader.textContent = 'Income Type';
+    typeHeader.textContent = 'My Income Type';
     typeHeader.style.width = '150px';
     
     const amountHeader = document.createElement('th');
@@ -1001,11 +1006,6 @@ function calculateSocialSecurityPT(ptSoleProprietorshipIncome, totalIncome, regi
 }
 
 function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
-    console.log('Calculating Taxable Base for Portugal');
-    console.log('Sole Proprietorship Income:', ptSoleProprietorshipIncome);
-    console.log('Total Income:', totalIncome);
-    console.log('Years in Business:', yearsInBusiness);
-
     let taxableBase = 0;
     let discountFactor = 1;
 
@@ -1139,6 +1139,60 @@ function calculateSocialSecurityUK(totalIncome) {
     return { socialSecurity: niContribution.toFixed(2), socialSecurityNote };
 }
 
+// --- Cyprus (CY) Functions ---
+function calculateIncomeTaxCY(taxableBase, highSkilledResident) {
+    // Cyprus has a progressive tax system
+    // For high-skilled residents, 50% of income is exempt from tax
+    
+    let effectiveTaxableBase = highSkilledResident ? taxableBase * 0.5 : taxableBase;
+    
+    // Cyprus tax brackets for 2024
+    const cyTaxBrackets = [
+        { threshold: 0, rate: 0 },         // 0% up to €19,500
+        { threshold: 19500, rate: 0.20 },  // 20% from €19,501 to €28,000
+        { threshold: 28000, rate: 0.25 },  // 25% from €28,001 to €36,300
+        { threshold: 36300, rate: 0.30 },  // 30% from €36,301 to €60,000
+        { threshold: 60000, rate: 0.35 }   // 35% over €60,000
+    ];
+    
+    // Calculate tax using the generic function
+    const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(effectiveTaxableBase, cyTaxBrackets);
+    
+    // Add note about high-skilled resident exemption if applicable
+    if (highSkilledResident) {
+        incomeTaxDetails.unshift({
+            rate: 0,
+            taxableAmount: (taxableBase * 0.5).toFixed(2),
+            taxAmount: "0.00"
+        });
+    }
+    
+    return { totalIncomeTax, incomeTaxDetails };
+}
+
+function calculateSocialSecurityCY(totalIncome) {
+    // Cyprus social security rates for 2024
+    const employeeRate = 0.083; // 8.3% for employee
+    const maxContributionBase = 4840 * 12; // Monthly ceiling of €4,840 (annual: €58,080)
+    
+    let taxableBase = totalIncome;
+    let socialSecurityNote = "";
+    
+    // Apply ceiling if income exceeds maximum contribution base
+    if (taxableBase > maxContributionBase) {
+        taxableBase = maxContributionBase;
+        socialSecurityNote = "Ceiling Reached";
+    }
+    
+    // Calculate social security contribution
+    const socialSecurity = taxableBase * employeeRate;
+    
+    return { 
+        socialSecurity: socialSecurity.toFixed(2), 
+        socialSecurityNote: socialSecurityNote ? socialSecurityNote : `${(employeeRate * 100).toFixed(1)}% of income` 
+    };
+}
+
 // --- Main Calculation Functions ---
 function collectCommonData() {
     const commonData = {};
@@ -1177,6 +1231,9 @@ function collectCommonData() {
         },
         uk: {
             blindPersonsAllowance: document.getElementById('uk-blindPersonsAllowance')?.checked || false
+        },
+        cy: {
+            highSkilledResident: document.getElementById('cy-highSkilledResident')?.checked || false
         }
     };
     
@@ -1336,6 +1393,24 @@ function calculateCountrySpecificData(countryCode, commonData) {
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     }
+    else if (countryCode === 'cy') {
+        // Cyprus calculations
+        const highSkilledResident = commonData.taxBenefits.cy.highSkilledResident;
+        
+        results.taxRegimeNote = highSkilledResident ? "High-Skilled Resident (50% tax exemption)" : "";
+        
+        results.taxableBase = commonData.totalIncome;
+        
+        // Calculate Cyprus income tax
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxCY(results.taxableBase, highSkilledResident);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
+        
+        // Calculate Cyprus social security
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityCY(commonData.totalIncome);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    }
     else {
         // Default tax calculation for any other country
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(results.taxableBase, taxData[countryCode].incomeTaxBrackets);
@@ -1386,7 +1461,7 @@ function updateCountrySelects() {
     countrySelectsContainer.innerHTML = ''; // Clear previous content
 
     // Render buttons for each country with flags
-    const countries = ['fr', 'es', 'pt', 'uk'];
+    const countries = ['fr', 'es', 'pt', 'uk', 'cy'];
     
     countries.forEach(countryCode => {
         const button = document.createElement('button');

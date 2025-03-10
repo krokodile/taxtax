@@ -128,6 +128,7 @@ export function fillTestData(context = window) {
     context.toggleCountry('es');
     context.toggleCountry('pt');
     context.toggleCountry('uk');
+    context.toggleCountry('cy');
 
     // Set Sole Proprietorship income
     const soleProprietorshipCheckbox = document.getElementById('income-soleProprietorship');
