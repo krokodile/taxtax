@@ -857,20 +857,37 @@ function updateSoleProprietorshipFields(incomeType, countryPrefix) {
 }
 
 function validateYearsInBusiness() {
+    // First check if sole proprietorship income is selected
+    const soleProprietorshipSelected = document.getElementById('income-soleProprietorship')?.checked || false;
+    
+    // If sole proprietorship is not selected, no validation needed
+    if (!soleProprietorshipSelected) {
+        return true;
+    }
+    
+    // Check if France or Portugal are selected (countries where years in business matter)
+    const relevantCountrySelected = selectedCountries.includes('fr') || selectedCountries.includes('pt');
+    
+    // If no relevant country selected, no validation needed
+    if (!relevantCountrySelected) {
+        return true;
+    }
+    
+    // Now we know we need to validate the years
     const yearsInBusinessInput = document.getElementById('yearsInBusiness');
     const errorDiv = document.getElementById('yearsInBusiness-error');
     
-    // Check if the field exists and is visible
-    if (yearsInBusinessInput && yearsInBusinessInput.style.display !== 'none') {
-        if (yearsInBusinessInput.value === '' || parseInt(yearsInBusinessInput.value) < 0) {
+    if (!yearsInBusinessInput || yearsInBusinessInput.value === '' || parseInt(yearsInBusinessInput.value) < 0) {
+        if (errorDiv) {
             errorDiv.textContent = 'Please enter a valid number of years in business.';
             errorDiv.style.display = 'block';
-            return false;
-        } else {
-            errorDiv.style.display = 'none';
         }
+        return false;
     }
     
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
     return true;
 }
 
@@ -1575,23 +1592,26 @@ function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalInco
     const monthlyFloor = IAS;
     let taxableBaseForSS = 0;
     let socialSecurityNote = "";
+    let rate = 0.11; // Default rate for employment income (11% for employee part only)
 
-    // Apply discount for the first three years
+    // Apply discount for the first three years for sole proprietorship
     let discountFactor = 1;
     if (yearsInBusiness === 1) {
         discountFactor = 0; // 50% reduction in the first year
     } 
 
+    // Check if this is sole proprietorship income
     if (document.getElementById('income-soleProprietorship')?.checked) {
-      if (regime === 'Simplified Regime') {
-          taxableBaseForSS = (ptSoleProprietorshipIncome * 0.70 * discountFactor) / 12;
-      } else {
-          taxableBaseForSS = (ptSoleProprietorshipIncome * discountFactor) / 12;
-      }
+        rate = 0.214; // Use 21.4% for sole proprietorship as they pay both parts
+        if (regime === 'Simplified Regime') {
+            taxableBaseForSS = (ptSoleProprietorshipIncome * 0.70 * discountFactor) / 12;
+        } else {
+            taxableBaseForSS = (ptSoleProprietorshipIncome * discountFactor) / 12;
+        }
+    } else {
+        // For employment income, use the regular base
+        taxableBaseForSS = totalIncome / 12;
     }
-      // Add *other* income to the MONTHLY SS taxable base
-    taxableBaseForSS += (totalIncome - ptSoleProprietorshipIncome) / 12;
-
 
     // Apply ceiling/floor *monthly*
     if (taxableBaseForSS > monthlyCeiling) {
@@ -1602,7 +1622,7 @@ function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalInco
         socialSecurityNote = "Floor Applied";
     }
 
-    const socialSecurity = taxableBaseForSS * 0.214 * 12;
+    const socialSecurity = taxableBaseForSS * rate * 12;
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
@@ -1656,20 +1676,26 @@ function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime,
 // --- Main Calculation Function ---
 function calculateTotalIncome() {
     let total = 0;
+    console.log('Calculating total income...');
     // Get all income type checkboxes
     const incomeCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="income-"]');
+    console.log('Found checkboxes:', incomeCheckboxes.length);
     
     incomeCheckboxes.forEach(checkbox => {
+        console.log('Checking checkbox:', checkbox.id, 'checked:', checkbox.checked);
         if (checkbox.checked) {
             const incomeType = checkbox.dataset.incomeType;
             const amountInput = document.getElementById(`amount-${incomeType}`);
+            console.log('Amount input:', amountInput?.value);
             if (amountInput) {
                 const amount = parseFloat(amountInput.value) || 0;
                 total += amount;
+                console.log('Added amount:', amount, 'Total:', total);
             }
         }
     });
     
+    console.log('Final total:', total);
     return total;
 }
 
@@ -2574,9 +2600,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set up event listeners
     calculateButton.addEventListener('click', () => {
+        console.log('Calculate button clicked');
         if (validateYearsInBusiness()) {
+            console.log('Years in business validated');
             const results = calculateTaxes();
-            displayResults(results);
+            console.log('Calculation results:', results);
+            if (results) {
+                displayResults(results);
+                console.log('Results displayed');
+            }
         }
     });
 });
