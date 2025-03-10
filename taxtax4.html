@@ -1743,6 +1743,55 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+    
+    // Parse URL parameters and trigger actions
+    function parseURLParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Check for 'fillTestData' parameter
+        if (urlParams.has('fillTestData') && urlParams.get('fillTestData') === 'true') {
+            console.log('Filling test data from URL parameter');
+            // Create context object for fillTestData function
+            const context = {
+                selectedCountries,
+                totalIncome,
+                resultsTable,
+                toggleCountry,
+                renderIncomeTypes,
+                renderQuestions,
+                renderTaxBenefits
+            };
+            // Call fillTestData function
+            fillTestData(context);
+        }
+        
+        // Check for 'calculate' parameter
+        if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
+            console.log('Calculating taxes from URL parameter');
+            // Wait a short time to ensure test data is fully loaded if that parameter was also used
+            setTimeout(() => {
+                // Trigger click on calculate button
+                calculateButton.click();
+            }, 500);
+        }
+        
+        // Check for 'view' parameter to set view mode
+        if (urlParams.has('view')) {
+            const viewMode = urlParams.get('view');
+            const viewModeToggle = document.getElementById('view-mode-toggle');
+            
+            if (viewMode === 'detailed' && !viewModeToggle.checked) {
+                viewModeToggle.checked = true;
+                viewModeToggle.dispatchEvent(new Event('change'));
+            } else if (viewMode === 'simple' && viewModeToggle.checked) {
+                viewModeToggle.checked = false;
+                viewModeToggle.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+    
+    // Call the function to parse URL parameters
+    parseURLParams();
 });
     </script>
 </body>
