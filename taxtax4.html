@@ -638,98 +638,11 @@
         </div>
     </div>
 
-    <script id="js-placeholder">
-// --- 1. Data and Constants ---
-const taxData = {
-    fr: {
-        name: 'France',
-        incomeTaxBrackets: [
-            { threshold: 0, rate: 0 },
-            { threshold: 10778, rate: 0.11 },
-            { threshold: 27478, rate: 0.30 },
-            { threshold: 78571, rate: 0.41 },
-            { threshold: 168994, rate: 0.45 }
-        ],
-        socialSecurity: {
-            csg: 0.092,  // CSG rate
-            crds: 0.005, // CRDS rate
-            baseRate: 0.22 // Base social security rate
-        },
-        questions: [
-            { id: 'maritalStatus', label: 'Marital Status', type: 'segmented', common: true, options: [
-                { value: 'Single', text: 'Single' },
-                { value: 'Married', text: 'Married' }
-            ]},
-            { id: 'children', label: 'Number of Children', type: 'number', common: true }
-        ]
-    },
-    es: {
-        name: 'Spain',
-        incomeTaxBrackets: [
-            { threshold: 0, rate: 0.19 },
-            { threshold: 12450, rate: 0.24 },
-            { threshold: 20200, rate: 0.30 },
-            { threshold: 35200, rate: 0.37 },
-            { threshold: 60000, rate: 0.45 },
-            { threshold: 300000, rate: 0.47 }
-        ],
-        questions: [
-            { id: 'maritalStatus', label: 'Marital Status', type: 'segmented', common: true, options: [
-                { value: 'Single', text: 'Single' },
-                { value: 'Married', text: 'Married' }
-            ]},
-            { id: 'children', label: 'Number of Children', type: 'number', common: true },
-            { id: 'beckhamLaw', label: "Beckham's Law", type: 'checkbox' }
-        ]
-    },
-    pt: {
-        name: 'Portugal',
-        incomeTaxBrackets: [
-            { threshold: 0, rate: 0.145 },
-            { threshold: 7479, rate: 0.21 },
-            { threshold: 11284, rate: 0.265 },
-            { threshold: 15992, rate: 0.285 },
-            { threshold: 20700, rate: 0.35 },
-            { threshold: 25246, rate: 0.37 },
-            { threshold: 36967, rate: 0.435 },
-            { threshold: 48033, rate: 0.45 },
-            { threshold: 75009, rate: 0.48 }
-        ],
-        questions: [
-            { id: 'maritalStatus', label: 'Marital Status', type: 'segmented', common: true, options: [
-                { value: 'Single', text: 'Single' },
-                { value: 'Married', text: 'Married' }
-            ]},
-            { id: 'children', label: 'Number of Children', type: 'number', common: true },
-            { id: 'nhrStatus', label: 'NHR Status', type: 'checkbox' },
-            { id: 'ifici', label: 'IFICI', type: 'checkbox' }
-        ]
-    },
-    uk: {
-        name: 'United Kingdom',
-        incomeTaxBrackets: [
-            { threshold: 0, rate: 0 },
-            { threshold: 12570, rate: 0.20 },
-            { threshold: 50270, rate: 0.40 },
-            { threshold: 125140, rate: 0.45 }
-        ],
-        socialSecurity: {
-            primaryThreshold: 12570,  // Primary threshold for National Insurance
-            upperEarningsLimit: 50270, // Upper earnings limit
-            primaryRate: 0.08,        // 8% rate between primary threshold and upper earnings limit
-            upperRate: 0.02           // 2% rate above upper earnings limit
-        },
-        questions: [
-            { id: 'maritalStatus', label: 'Marital Status', type: 'segmented', common: true, options: [
-                { value: 'Single', text: 'Single' },
-                { value: 'Married', text: 'Married' }
-            ]},
-            { id: 'children', label: 'Number of Children', type: 'number', common: true },
-            { id: 'blindPersonsAllowance', label: 'Blind Person\'s Allowance', type: 'checkbox' }
-        ]
-    }
-};
+    <script type="module" id="js-placeholder">
+// Import tax data from separate files
+import { taxData } from './js/countries/index.js';
 
+// --- 1. Data and Constants ---
 const incomeTypes = {
     employment: { label: 'Employment Income' },
     soleProprietorship: { label: 'Sole Proprietorship Income' },
@@ -1494,16 +1407,6 @@ function renderIncomeTypes() {
 }
 
 
-function validateTotalIncome() {
-    // Get the value from the INPUT, and parse it to a float
-    totalIncome = parseFloat(document.getElementById('total-income')?.value || 0);
-    if (isNaN(totalIncome) || totalIncome <= 0) {
-        alert('Please enter a valid Total Gross Income.');
-        return false; // Prevent calculation
-    }
-    return true; // Validation successful
-}   
-
 // --- 5. Calculation and Result Display ---
 function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
     if (beckhamLaw) {
@@ -1562,29 +1465,6 @@ function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
 }
 // --- Helper Functions ---
 
-function calculateIncomeTax(taxableBase, brackets) {
-    const incomeTaxDetails = [];
-    let totalIncomeTax = 0;
-    let remainingIncome = taxableBase;
-
-    brackets.forEach((bracket, index) => {
-        const nextThreshold = index < brackets.length - 1 ? brackets[index + 1].threshold : Infinity;
-        const taxableAtThisRate = Math.min(remainingIncome, nextThreshold - bracket.threshold);
-        const taxAtThisRate = taxableAtThisRate * bracket.rate;
-        totalIncomeTax += taxAtThisRate;
-
-        if (taxableAtThisRate > 0) {
-            incomeTaxDetails.push({
-                rate: bracket.rate,
-                taxableAmount: taxableAtThisRate.toFixed(2),
-                taxAmount: taxAtThisRate.toFixed(2)
-            });
-        }
-        remainingIncome -= taxableAtThisRate;
-    });
-
-    return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
-}
 
 function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
     const IAS = 509.26; // 2024 IAS value
@@ -1750,40 +1630,7 @@ function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
     }
 }
 
-function calculateSpanishIncomeTax(taxableBase, beckhamLaw) {
-    if (beckhamLaw) {
-        // Beckham Law: Flat rate (24% up to 600,000, 47% above)
-        let totalIncomeTax = 0;
-        const incomeTaxDetails = [];
 
-        if (taxableBase <= 600000) {
-            totalIncomeTax = taxableBase * 0.24;
-            incomeTaxDetails.push({
-                rate: 0.24,
-                taxableAmount: taxableBase.toFixed(2),
-                taxAmount: totalIncomeTax.toFixed(2)
-            });
-        } else {
-            totalIncomeTax = 600000 * 0.24;
-            incomeTaxDetails.push({
-                rate: 0.24,
-                taxableAmount: 600000,
-                taxAmount: totalIncomeTax.toFixed(2)
-            });
-            totalIncomeTax += (taxableBase - 600000) * 0.47;
-            incomeTaxDetails.push({
-                rate: 0.47,
-                taxableAmount: (taxableBase - 600000).toFixed(2),
-                taxAmount: ((taxableBase - 600000) * 0.47).toFixed(2)
-            });
-        }
-
-        return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
-    } else {
-        // Standard Progressive Tax Calculation for Spain
-        return calculateIncomeTax(taxableBase, taxData.es.incomeTaxBrackets); // Reuse generic function
-    }
-}
 
 function calculateSpanishSocialSecurity(totalIncome) {
     const monthlyCeiling = 4720.50;  // Monthly ceiling for 2024
