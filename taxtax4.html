@@ -73,6 +73,7 @@
 import { taxData } from './js/countries/index.js';
 import { resetData, fillTestData } from './js/utils.js';
 import { calculateIncomeTaxCY, calculateSocialSecurityCY } from './js/countries/cy.js';
+import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './js/countries/uk.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
@@ -913,6 +914,7 @@ function calculateTotalIncome() {
     return total;
 }
 
+// Helper function for income tax calculation
 function calculateIncomeTax(taxableBase, brackets) {
     const incomeTaxDetails = [];
     let totalIncomeTax = 0;
@@ -1228,39 +1230,6 @@ function calculateSocialSecurityFR(totalIncome, yearsInBusiness = 0, hasSoleProp
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 }
 
-// --- UK Functions ---
-function calculateSocialSecurityUK(totalIncome) {
-    const rates = taxData.uk.socialSecurity;
-    let socialSecurityNote = "";
-    
-    // Calculate National Insurance contributions
-    let niContribution = 0;
-    
-    // No NI on income below primary threshold
-    if (totalIncome <= rates.primaryThreshold) {
-        socialSecurityNote = "Below primary threshold - no National Insurance due";
-    } else {
-        // Calculate NI on income between primary threshold and upper earnings limit
-        const middleBandIncome = Math.min(totalIncome, rates.upperEarningsLimit) - rates.primaryThreshold;
-        if (middleBandIncome > 0) {
-            const middleBandNI = middleBandIncome * rates.primaryRate;
-            niContribution += middleBandNI;
-            socialSecurityNote = `${(rates.primaryRate * 100).toFixed(0)}% on £${rates.primaryThreshold.toLocaleString()} to £${Math.min(totalIncome, rates.upperEarningsLimit).toLocaleString()}: £${Math.round(middleBandNI).toLocaleString()}`;
-        }
-        
-        // Calculate NI on income above upper earnings limit
-        if (totalIncome > rates.upperEarningsLimit) {
-            const upperBandIncome = totalIncome - rates.upperEarningsLimit;
-            const upperBandNI = upperBandIncome * rates.upperRate;
-            niContribution += upperBandNI;
-            socialSecurityNote += `, ${(rates.upperRate * 100).toFixed(0)}% on income above £${rates.upperEarningsLimit.toLocaleString()}: £${Math.round(upperBandNI).toLocaleString()}`;
-        }
-    }
-    
-    return { socialSecurity: niContribution.toFixed(2), socialSecurityNote };
-}
-
-// --- Cyprus (CY) Functions ---
 // --- Main Calculation Functions ---
 function collectCommonData() {
     const commonData = {};
@@ -1369,6 +1338,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
         results.socialSecurityNote = socialSecurityNote;
     } 
     else if (countryCode === 'fr') {
+        // French calculations
         // Calculate French family quotient
         let familyQuotient = commonData.maritalStatus === 'Married' ? 2 : 1; // Base quotient
         
@@ -1439,19 +1409,15 @@ function calculateCountrySpecificData(countryCode, commonData) {
             taxRegimeNote += `Reduced Personal Allowance: £${adjustedPersonalAllowance.toLocaleString()}`;
         }
         
-        // Adjust tax brackets to account for the adjusted personal allowance
-        const adjustedBrackets = [...taxData[countryCode].incomeTaxBrackets];
-        adjustedBrackets[1].threshold = adjustedPersonalAllowance;
-        
         results.taxableBase = taxableBase;
         results.taxRegimeNote = taxRegimeNote;
         
-        // Calculate income tax using the adjusted brackets
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(taxableBase, adjustedBrackets);
+        // Calculate income tax using the imported function
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxUK(taxableBase, adjustedPersonalAllowance);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
         
-        // Calculate UK National Insurance
+        // Calculate UK National Insurance using imported function
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityUK(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
