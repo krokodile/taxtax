@@ -200,12 +200,9 @@ function updateSoleProprietorshipFields(incomeType, countryPrefix) {
     }
 }
 
-function validateYearsInBusiness() {
+function validateYearsInBusiness(hasSoleProprietorship, selectedCountries, yearsInBusiness) {
     // First check if sole proprietorship income is selected
-    const soleProprietorshipSelected = document.getElementById('income-soleProprietorship')?.checked || false;
-    
-    // If sole proprietorship is not selected, no validation needed
-    if (!soleProprietorshipSelected) {
+    if (!hasSoleProprietorship) {
         return true;
     }
     
@@ -218,10 +215,9 @@ function validateYearsInBusiness() {
     }
     
     // Now we know we need to validate the years
-    const yearsInBusinessInput = document.getElementById('yearsInBusiness');
     const errorDiv = document.getElementById('yearsInBusiness-error');
     
-    if (!yearsInBusinessInput || yearsInBusinessInput.value === '' || parseInt(yearsInBusinessInput.value) < 0) {
+    if (yearsInBusiness === undefined || yearsInBusiness === null || yearsInBusiness < 0) {
         if (errorDiv) {
             errorDiv.textContent = 'Please enter a valid number of years in business.';
             errorDiv.style.display = 'block';
@@ -982,7 +978,7 @@ function calculateSpanishSocialSecurity(totalIncome) {
 }
 
 // --- Portugal (PT) Functions ---
-function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
+function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness, hasSoleProprietorship) {
     const IAS = 509.26; // 2024 IAS value
     const monthlyCeiling = 12 * IAS;
     const monthlyFloor = IAS;
@@ -997,7 +993,7 @@ function calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalInco
     } 
 
     // Check if this is sole proprietorship income
-    if (document.getElementById('income-soleProprietorship')?.checked) {
+    if (hasSoleProprietorship) {
         rate = 0.214; // Use 21.4% for sole proprietorship as they pay both parts
         if (regime === 'Simplified Regime') {
             taxableBaseForSS = (ptSoleProprietorshipIncome * 0.70 * discountFactor) / 12;
@@ -1081,7 +1077,7 @@ function calculatePortugueseIncomeTax(taxableBase, nhr, ifici) {
 }
 
 // --- France (FR) Functions ---
-function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0) {
+function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0, hasSoleProprietorship = false) {
     const rates = taxData.fr.socialSecurity;
     let socialSecurityNote = "";
     
@@ -1113,7 +1109,7 @@ function calculateFrenchSocialSecurity(totalIncome, yearsInBusiness = 0) {
                         (totalIncome > PASS ? `(capped at PASS: ${PASS}€)` : "");
     
     // Apply ACRE reduction only for the first year
-    if (document.getElementById('income-soleProprietorship')?.checked && yearsInBusiness === 1) {
+    if (hasSoleProprietorship && yearsInBusiness === 1) {
         const discount = 0.50; // 50% reduction in first year only
         // Apply discount only to base amount, not to CSG/CRDS
         const discountedBase = baseAmount * (1 - discount);
@@ -1173,14 +1169,39 @@ function collectCommonData() {
 
     // Access income for sole proprietorship using a consistent ID format
     const checkbox = document.getElementById('income-soleProprietorship');
+    commonData.hasSoleProprietorship = checkbox?.checked || false;
     commonData.soleProprietorshipIncome = 0;
-    if (checkbox?.checked) {
+    if (commonData.hasSoleProprietorship) {
         const amountInput = document.getElementById('amount-soleProprietorship');
         commonData.soleProprietorshipIncome = parseFloat(amountInput.value) || 0;
     }
     
     // Get years in business if applicable
     commonData.yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
+    
+    // Get tax benefits for each country
+    commonData.taxBenefits = {
+        pt: {
+            nhr: document.getElementById('pt-nhrStatus')?.checked || false,
+            ifici: document.getElementById('pt-ifici')?.checked || false
+        },
+        es: {
+            beckhamLaw: document.getElementById('es-beckhamLaw')?.checked || false
+        },
+        uk: {
+            blindPersonsAllowance: document.getElementById('uk-blindPersonsAllowance')?.checked || false
+        }
+    };
+    
+    // Get regime for Portugal
+    const ptRegimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
+    commonData.ptRegime = 'Simplified Regime'; // Default
+    if (ptRegimeControl) {
+        const activeButton = ptRegimeControl.querySelector('button.active');
+        if (activeButton) {
+            commonData.ptRegime = activeButton.value;
+        }
+    }
     
     return commonData;
 }
@@ -1195,15 +1216,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
     // Country-specific calculations for taxable base and tax regime
     if (countryCode === 'pt') {
         // Portuguese calculations
-        const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
-        let regime = 'Simplified Regime';
-        
-        if (regimeControl) {
-            const activeButton = regimeControl.querySelector('button.active');
-            if (activeButton) {
-                regime = activeButton.value;
-            }
-        }
+        const regime = commonData.ptRegime;
         
         results.taxableBase = calculateTaxableBasePT(
             commonData.soleProprietorshipIncome, 
@@ -1217,8 +1230,8 @@ function calculateCountrySpecificData(countryCode, commonData) {
             : "Organized Accounting";
             
         // Calculate Portuguese income tax
-        const nhr = document.getElementById('pt-nhrStatus')?.checked || false;
-        const ifici = document.getElementById('pt-ifici')?.checked || false;
+        const nhr = commonData.taxBenefits.pt.nhr;
+        const ifici = commonData.taxBenefits.pt.ifici;
         const { totalIncomeTax, incomeTaxDetails } = calculatePortugueseIncomeTax(results.taxableBase, nhr, ifici);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
@@ -1228,7 +1241,8 @@ function calculateCountrySpecificData(countryCode, commonData) {
             commonData.soleProprietorshipIncome, 
             commonData.totalIncome, 
             regime, 
-            commonData.yearsInBusiness
+            commonData.yearsInBusiness,
+            commonData.hasSoleProprietorship
         );
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
@@ -1271,7 +1285,8 @@ function calculateCountrySpecificData(countryCode, commonData) {
         // Calculate French social security
         const { socialSecurity, socialSecurityNote } = calculateFrenchSocialSecurity(
             commonData.totalIncome, 
-            commonData.yearsInBusiness
+            commonData.yearsInBusiness,
+            commonData.hasSoleProprietorship
         );
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
@@ -1282,7 +1297,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
         let taxRegimeNote = "";
         
         // Apply Blind Person's Allowance if selected
-        const blindPersonsAllowance = document.getElementById('uk-blindPersonsAllowance')?.checked || false;
+        const blindPersonsAllowance = commonData.taxBenefits.uk.blindPersonsAllowance;
         if (blindPersonsAllowance) {
             taxableBase -= 3070; // 2024 Blind Person's Allowance
             taxRegimeNote = "Blind Person's Allowance: £3,070";
@@ -1322,7 +1337,7 @@ function calculateCountrySpecificData(countryCode, commonData) {
     } 
     else if (countryCode === 'es') {
         // Spanish calculations
-        const beckhamLaw = document.getElementById('es-beckhamLaw')?.checked || false;
+        const beckhamLaw = commonData.taxBenefits.es.beckhamLaw;
         
         // Calculate Spanish income tax
         const { totalIncomeTax, incomeTaxDetails } = calculateSpanishIncomeTax(results.taxableBase, beckhamLaw);
@@ -1355,15 +1370,27 @@ function calculateCountrySpecificData(countryCode, commonData) {
     return results;
 }
 
-function calculateTaxesForCountry(countryCode, totalIncome) {
-    // Collect common data
+function calculateTaxes() {
+    // Collect all data from the DOM in one place
     const commonData = collectCommonData();
-    
-    // Override totalIncome with the passed parameter if needed
-    commonData.totalIncome = totalIncome;
-    
-    // Calculate country-specific data
-    return calculateCountrySpecificData(countryCode, commonData);
+    totalIncome = commonData.totalIncome; // Update the global totalIncome variable
+
+    if (totalIncome <= 0) {
+        alert("Ошибка: Укажите хотя бы один тип дохода и введите сумму.");
+        return null;
+    }
+
+    // Validate years in business
+    if (!validateYearsInBusiness(commonData.hasSoleProprietorship, selectedCountries, commonData.yearsInBusiness)) {
+        return null;
+    }
+
+    const results = {};
+    selectedCountries.forEach(countryCode => {
+        results[countryCode] = calculateCountrySpecificData(countryCode, commonData);
+    });
+
+    return results;
 }
 
 // --- Main Calculation Function (Data Only) ---
@@ -1396,34 +1423,19 @@ function updateCountrySelects() {
     renderIncomeTypes();
 }
 
-function calculateTaxes() {
-    totalIncome = calculateTotalIncome(); // Update the global totalIncome variable
-
-    if (totalIncome <= 0) {
-        alert("Ошибка: Укажите хотя бы один тип дохода и введите сумму.");
-        return null;
-    }
-
-    const results = {};
-    selectedCountries.forEach(countryCode => {
-        results[countryCode] = calculateTaxesForCountry(countryCode, totalIncome);
-    });
-
-    return results;
-}
-
-
 // --- Display Results Function (Presentation Only) ---
 
-function displayResults(results) {
+function displayResults(results, isDetailedView) {
     resultsTable.innerHTML = '';
 
     if (!results) {
         return;
     }
 
-    // Get the current view mode
-    const isDetailedView = document.getElementById('view-mode-toggle').checked;
+    // If isDetailedView is not provided, get it from the DOM
+    if (isDetailedView === undefined) {
+        isDetailedView = document.getElementById('view-mode-toggle').checked;
+    }
 
     const headerRow = resultsTable.insertRow();
     headerRow.insertCell().textContent = 'Metric';
@@ -1665,7 +1677,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewModeLabel = document.getElementById('view-mode-label');
     
     viewModeToggle.addEventListener('change', function() {
-        if (this.checked) {
+        const isDetailedView = this.checked;
+        if (isDetailedView) {
             viewModeLabel.textContent = 'Detailed View';
         } else {
             viewModeLabel.textContent = 'Simple View';
@@ -1676,7 +1689,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existingResults && existingResults.children.length > 0) {
             const results = calculateTaxes();
             if (results) {
-                displayResults(results);
+                displayResults(results, isDetailedView);
             }
         }
     });
@@ -1684,12 +1697,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up event listeners
     calculateButton.addEventListener('click', () => {
         console.log('Calculate button clicked');
-        if (validateYearsInBusiness()) {
+        const commonData = collectCommonData();
+        if (validateYearsInBusiness(commonData.hasSoleProprietorship, selectedCountries, commonData.yearsInBusiness)) {
             console.log('Years in business validated');
             const results = calculateTaxes();
             console.log('Calculation results:', results);
             if (results) {
-                displayResults(results);
+                const isDetailedView = document.getElementById('view-mode-toggle').checked;
+                displayResults(results, isDetailedView);
                 console.log('Results displayed');
             }
         }
