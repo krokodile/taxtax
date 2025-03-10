@@ -74,6 +74,7 @@ import { taxData } from './js/countries/index.js';
 import { resetData, fillTestData } from './js/utils.js';
 import { calculateIncomeTaxCY, calculateSocialSecurityCY } from './js/countries/cy.js';
 import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './js/countries/uk.js';
+import { calculateIncomeTaxFR, calculateSocialSecurityFR } from './js/countries/fr.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
@@ -1181,55 +1182,6 @@ function calculateIncomeTaxPT(taxableBase, nhr, ifici) {
     }
 }
 
-// --- France (FR) Functions ---
-function calculateSocialSecurityFR(totalIncome, yearsInBusiness = 0, hasSoleProprietorship = false) {
-    const rates = taxData.fr.socialSecurity;
-    let socialSecurityNote = "";
-    
-    // Constants for 2024
-    const PASS = 43992; // Plafond Annuel de la Sécurité Sociale 2024
-    const CSG_CRDS_BASE = 0.9825; // CSG and CRDS are calculated on 98.25% of income
-    
-    // Calculate CSG and CRDS (on 98.25% of total income)
-    const csgCrdsBase = totalIncome * CSG_CRDS_BASE;
-    const csgAmount = csgCrdsBase * rates.csg;
-    const crdsAmount = csgCrdsBase * rates.crds;
-    
-    // Determine the appropriate rate based on income type
-    // For employment income, use employee part only (around 8%)
-    // For sole proprietorship, use the full rate (22%)
-    const effectiveRate = hasSoleProprietorship ? rates.baseRate : 0.08;
-    
-    // Calculate base social security with PASS ceiling
-    let baseAmount;
-    if (totalIncome > PASS) {
-        baseAmount = PASS * effectiveRate;
-        socialSecurityNote = `Base capped at PASS (${PASS}€)`;
-    } else {
-        baseAmount = totalIncome * effectiveRate;
-    }
-    
-    // Calculate initial social security amount
-    let socialSecurity = csgAmount + crdsAmount + baseAmount;
-    
-    // Add detailed breakdown to note
-    socialSecurityNote = `CSG (${(rates.csg * 100).toFixed(1)}%): ${Math.round(csgAmount)}€, ` +
-                        `CRDS (${(rates.crds * 100).toFixed(1)}%): ${Math.round(crdsAmount)}€, ` +
-                        `Base (${(effectiveRate * 100).toFixed(1)}%): ${Math.round(baseAmount)}€ ` +
-                        (totalIncome > PASS ? `(capped at PASS: ${PASS}€)` : "");
-    
-    // Apply ACRE reduction only for the first year of sole proprietorship
-    if (hasSoleProprietorship && yearsInBusiness === 1) {
-        const discount = 0.50; // 50% reduction in first year only
-        // Apply discount only to base amount, not to CSG/CRDS
-        const discountedBase = baseAmount * (1 - discount);
-        socialSecurity = csgAmount + crdsAmount + discountedBase;
-        socialSecurityNote += ` (ACRE: 50% first year reduction on base contributions)`;
-    }
-    
-    return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
-}
-
 // --- Main Calculation Functions ---
 function collectCommonData() {
     const commonData = {};
@@ -1338,7 +1290,6 @@ function calculateCountrySpecificData(countryCode, commonData) {
         results.socialSecurityNote = socialSecurityNote;
     } 
     else if (countryCode === 'fr') {
-        // French calculations
         // Calculate French family quotient
         let familyQuotient = commonData.maritalStatus === 'Married' ? 2 : 1; // Base quotient
         
@@ -1355,25 +1306,16 @@ function calculateCountrySpecificData(countryCode, commonData) {
         // Store original taxable base for display
         results.originalTaxableBase = commonData.totalIncome;
         
-        // Adjust taxable base by family quotient
-        const taxablePerPart = commonData.totalIncome / familyQuotient;
-        
-        // Calculate tax per part
-        const { totalIncomeTax: taxPerPart, incomeTaxDetails } = calculateIncomeTax(taxablePerPart, taxData[countryCode].incomeTaxBrackets);
-        
-        // Multiply back by number of parts to get final tax
-        results.incomeTax = (parseFloat(taxPerPart) * familyQuotient).toFixed(2);
-        results.incomeTaxDetails = incomeTaxDetails.map(detail => ({
-            ...detail,
-            taxableAmount: (parseFloat(detail.taxableAmount) * familyQuotient).toFixed(2),
-            taxAmount: (parseFloat(detail.taxAmount) * familyQuotient).toFixed(2)
-        }));
+        // Calculate French income tax using imported function
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxFR(commonData.totalIncome, familyQuotient);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
         
         if (commonData.yearsInBusiness > 0) {
             results.taxRegimeNote += `, Years in Business: ${commonData.yearsInBusiness}`;
         }
         
-        // Calculate French social security
+        // Calculate French social security using imported function
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityFR(
             commonData.totalIncome, 
             commonData.yearsInBusiness,
