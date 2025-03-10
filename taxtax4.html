@@ -1090,13 +1090,18 @@ function calculateSocialSecurityFR(totalIncome, yearsInBusiness = 0, hasSoleProp
     const csgAmount = csgCrdsBase * rates.csg;
     const crdsAmount = csgCrdsBase * rates.crds;
     
+    // Determine the appropriate rate based on income type
+    // For employment income, use employee part only (around 8%)
+    // For sole proprietorship, use the full rate (22%)
+    const effectiveRate = hasSoleProprietorship ? rates.baseRate : 0.08;
+    
     // Calculate base social security with PASS ceiling
     let baseAmount;
     if (totalIncome > PASS) {
-        baseAmount = PASS * rates.baseRate;
+        baseAmount = PASS * effectiveRate;
         socialSecurityNote = `Base capped at PASS (${PASS}€)`;
     } else {
-        baseAmount = totalIncome * rates.baseRate;
+        baseAmount = totalIncome * effectiveRate;
     }
     
     // Calculate initial social security amount
@@ -1105,10 +1110,10 @@ function calculateSocialSecurityFR(totalIncome, yearsInBusiness = 0, hasSoleProp
     // Add detailed breakdown to note
     socialSecurityNote = `CSG (${(rates.csg * 100).toFixed(1)}%): ${Math.round(csgAmount)}€, ` +
                         `CRDS (${(rates.crds * 100).toFixed(1)}%): ${Math.round(crdsAmount)}€, ` +
-                        `Base (${(rates.baseRate * 100).toFixed(1)}%): ${Math.round(baseAmount)}€ ` +
+                        `Base (${(effectiveRate * 100).toFixed(1)}%): ${Math.round(baseAmount)}€ ` +
                         (totalIncome > PASS ? `(capped at PASS: ${PASS}€)` : "");
     
-    // Apply ACRE reduction only for the first year
+    // Apply ACRE reduction only for the first year of sole proprietorship
     if (hasSoleProprietorship && yearsInBusiness === 1) {
         const discount = 0.50; // 50% reduction in first year only
         // Apply discount only to base amount, not to CSG/CRDS
