@@ -1,6 +1,7 @@
 // United Kingdom tax settings
 export const taxData = {
     name: 'United Kingdom',
+    flag: '🇬🇧',
     incomeTaxBrackets: [
         { threshold: 0, rate: 0 },
         { threshold: 12570, rate: 0.20 },

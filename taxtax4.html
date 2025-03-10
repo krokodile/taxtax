@@ -335,13 +335,6 @@ function renderTaxBenefits() {
     // Create table body
     const tbody = document.createElement('tbody');
 
-    const countryFlags = {
-        fr: '🇫🇷',
-        es: '🇪🇸',
-        pt: '🇵🇹', 
-        uk: '🇬🇧'
-    };
-
     // Only show benefits for selected countries
     selectedCountries.forEach(countryCode => {
         if (taxBenefits[countryCode] && taxBenefits[countryCode].length > 0) {
@@ -352,7 +345,7 @@ function renderTaxBenefits() {
                 const countryCell = document.createElement('td');
                 countryCell.style.verticalAlign = 'top'; // Align to top
                 countryCell.style.whiteSpace = 'nowrap'; // Keep flag and name together
-                countryCell.innerHTML = `${countryFlags[countryCode]} ${taxData[countryCode].name}`;
+                countryCell.innerHTML = `${taxData[countryCode].flag} ${taxData[countryCode].name}`;
                 row.appendChild(countryCell);
                 
                 // Benefit cell with checkbox
@@ -1406,17 +1399,12 @@ function updateCountrySelects() {
 
     // Render buttons for each country with flags
     const countries = ['fr', 'es', 'pt', 'uk'];
-    const countryFlags = {
-        fr: '🇫🇷',
-        es: '🇪🇸',
-        pt: '🇵🇹',
-        uk: '🇬🇧'
-    };
+    
     countries.forEach(countryCode => {
         const button = document.createElement('button');
         button.dataset.country = countryCode;
         button.onclick = () => toggleCountry(countryCode);
-        button.innerHTML = `${countryFlags[countryCode]} ${taxData[countryCode].name}`;
+        button.innerHTML = `${taxData[countryCode].flag} ${taxData[countryCode].name}`;
         
         // Add active class if country is selected
         if (selectedCountries.includes(countryCode)) {
@@ -1446,16 +1434,9 @@ function displayResults(results, isDetailedView) {
     const headerRow = resultsTable.insertRow();
     headerRow.insertCell().textContent = 'Metric';
 
-    const countryFlags = {
-        fr: '🇫🇷',
-        es: '🇪🇸',
-        pt: '🇵🇹',
-        uk: '🇬🇧'
-    };
-
     selectedCountries.forEach(countryCode => {
         const th = document.createElement('th');
-        th.textContent = `${countryFlags[countryCode]} ${taxData[countryCode].name}`;
+        th.textContent = `${taxData[countryCode].flag} ${taxData[countryCode].name}`;
         th.style.textAlign = 'right';
         headerRow.appendChild(th);
     });
@@ -1582,22 +1563,6 @@ function displayResults(results, isDetailedView) {
 // Event listeners will be set up in the DOMContentLoaded event handler
 
 // --- 6. Session Management and Test Data ---
-
-function saveSession() {
-// ... existing code ...
-}
-
-function showSessionList() {
-// ... existing code ...
-}
-
-function loadSelectedSession(){
-// ... existing code ...
-}
-
-function loadSession(key) {
-// ... existing code ...
-}
 
 // --- Variables ---
 let selectedCountries = [];

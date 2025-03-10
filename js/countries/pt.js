@@ -1,6 +1,7 @@
 // Portugal tax settings
 export const taxData = {
     name: 'Portugal',
+    flag: '🇵🇹',
     incomeTaxBrackets: [
         { threshold: 0, rate: 0.145 },
         { threshold: 7479, rate: 0.21 },

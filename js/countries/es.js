@@ -1,6 +1,7 @@
 // Spain tax settings
 export const taxData = {
     name: 'Spain',
+    flag: '🇪🇸',
     incomeTaxBrackets: [
         { threshold: 0, rate: 0.19 },
         { threshold: 12450, rate: 0.24 },

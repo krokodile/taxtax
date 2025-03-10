@@ -1,6 +1,7 @@
 // France tax settings
 export const taxData = {
     name: 'France',
+    flag: '🇫🇷',
     incomeTaxBrackets: [
         { threshold: 0, rate: 0 },
         { threshold: 10778, rate: 0.11 },
