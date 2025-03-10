@@ -182,6 +182,18 @@ export function fillTestData(context = window) {
     if (children) {
         children.value = 2;
     }
+    
+    // Select Beckham Law in Spain
+    const beckhamLawCheckbox = document.getElementById('es-beckhamLaw');
+    if (beckhamLawCheckbox) {
+        beckhamLawCheckbox.checked = true;
+    }
+    
+    // Select High-Skilled Resident in Cyprus
+    const highSkilledResidentCheckbox = document.getElementById('cy-highSkilledResident');
+    if (highSkilledResidentCheckbox) {
+        highSkilledResidentCheckbox.checked = true;
+    }
 
     // Scroll to calculate button
     const calculateButton = document.getElementById('calculate-button');
