@@ -21,6 +21,7 @@
                     </div>
                 </div>
                 <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
+                <button id="reset-data" class="test-data-button">🔄 Reset Data</button>
             </div>
         </div>
 
@@ -70,6 +71,7 @@
     <script type="module" id="js-placeholder">
 // Import tax data from separate files
 import { taxData } from './js/countries/index.js';
+import { resetData, fillTestData } from './js/utils.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
@@ -1155,30 +1157,44 @@ function calculateUKNationalInsurance(totalIncome) {
 }
 
 // --- Main Calculation Functions ---
-function calculateTaxesForCountry(countryCode, totalIncome) {
-    const results = {};
-    let ptSoleProprietorshipIncome = 0;
-    let frSoleProprietorshipIncome = 0;
-    const currentYear = new Date().getFullYear();
-
+function collectCommonData() {
+    const commonData = {};
+    
+    // Get total income
+    commonData.totalIncome = calculateTotalIncome();
+    
     // Get common question values from shared fields
     const maritalStatusControl = document.getElementById('maritalStatus');
-    const maritalStatus = maritalStatusControl ? 
+    commonData.maritalStatus = maritalStatusControl ? 
         maritalStatusControl.querySelector('button.active')?.value : 'Single';
     
     const childrenInput = document.getElementById('children');
-    const numChildren = childrenInput ? parseInt(childrenInput.value) || 0 : 0;
+    commonData.numChildren = childrenInput ? parseInt(childrenInput.value) || 0 : 0;
 
     // Access income for sole proprietorship using a consistent ID format
     const checkbox = document.getElementById('income-soleProprietorship');
+    commonData.soleProprietorshipIncome = 0;
     if (checkbox?.checked) {
         const amountInput = document.getElementById('amount-soleProprietorship');
-        ptSoleProprietorshipIncome = parseFloat(amountInput.value) || 0;
-        frSoleProprietorshipIncome = ptSoleProprietorshipIncome;
+        commonData.soleProprietorshipIncome = parseFloat(amountInput.value) || 0;
     }
+    
+    // Get years in business if applicable
+    commonData.yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
+    
+    return commonData;
+}
 
+function calculateCountrySpecificData(countryCode, commonData) {
+    const results = {};
+    
+    // Set default values
+    results.taxableBase = commonData.totalIncome;
+    results.taxRegimeNote = "";
+    
+    // Country-specific calculations for taxable base and tax regime
     if (countryCode === 'pt') {
-        // Portuguese calculations remain unchanged
+        // Portuguese calculations
         const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
         let regime = 'Simplified Regime';
         
@@ -1189,30 +1205,53 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
             }
         }
         
-        const yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
-        results.taxableBase = calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness);
+        results.taxableBase = calculateTaxableBasePT(
+            commonData.soleProprietorshipIncome, 
+            commonData.totalIncome, 
+            regime, 
+            commonData.yearsInBusiness
+        );
+        
         results.taxRegimeNote = regime === 'Simplified Regime'
             ? "Simplified Regime (75% Income Tax, 70% Social Security)"
             : "Organized Accounting";
-    } else if (countryCode === 'fr') {
+            
+        // Calculate Portuguese income tax
+        const nhr = document.getElementById('pt-nhrStatus')?.checked || false;
+        const ifici = document.getElementById('pt-ifici')?.checked || false;
+        const { totalIncomeTax, incomeTaxDetails } = calculatePortugueseIncomeTax(results.taxableBase, nhr, ifici);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
+        
+        // Calculate Portuguese social security
+        const { socialSecurity, socialSecurityNote } = calculatePortugueseSocialSecurity(
+            commonData.soleProprietorshipIncome, 
+            commonData.totalIncome, 
+            regime, 
+            commonData.yearsInBusiness
+        );
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    } 
+    else if (countryCode === 'fr') {
         // Calculate French family quotient
-        let familyQuotient = maritalStatus === 'Married' ? 2 : 1; // Base quotient
+        let familyQuotient = commonData.maritalStatus === 'Married' ? 2 : 1; // Base quotient
         
         // Add quotient for children
-        if (numChildren >= 1) familyQuotient += 0.5; // First child
-        if (numChildren >= 2) familyQuotient += 0.5; // Second child
-        if (numChildren > 2) familyQuotient += (numChildren - 2); // Third and subsequent children get 1 part each
+        if (commonData.numChildren >= 1) familyQuotient += 0.5; // First child
+        if (commonData.numChildren >= 2) familyQuotient += 0.5; // Second child
+        if (commonData.numChildren > 2) familyQuotient += (commonData.numChildren - 2); // Third and subsequent children get 1 part each
         
         // Calculate taxable base with family quotient
-        results.taxableBase = totalIncome;
+        results.taxableBase = commonData.totalIncome;
         results.familyQuotient = familyQuotient;
         results.taxRegimeNote = `Family Quotient: ${familyQuotient} parts`;
         
         // Store original taxable base for display
-        results.originalTaxableBase = totalIncome;
+        results.originalTaxableBase = commonData.totalIncome;
         
         // Adjust taxable base by family quotient
-        const taxablePerPart = totalIncome / familyQuotient;
+        const taxablePerPart = commonData.totalIncome / familyQuotient;
         
         // Calculate tax per part
         const { totalIncomeTax: taxPerPart, incomeTaxDetails } = calculateIncomeTax(taxablePerPart, taxData[countryCode].incomeTaxBrackets);
@@ -1225,13 +1264,21 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
             taxAmount: (parseFloat(detail.taxAmount) * familyQuotient).toFixed(2)
         }));
         
-        const yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
-        if (yearsInBusiness > 0) {
-            results.taxRegimeNote += `, Years in Business: ${yearsInBusiness}`;
+        if (commonData.yearsInBusiness > 0) {
+            results.taxRegimeNote += `, Years in Business: ${commonData.yearsInBusiness}`;
         }
-    } else if (countryCode === 'uk') {
+        
+        // Calculate French social security
+        const { socialSecurity, socialSecurityNote } = calculateFrenchSocialSecurity(
+            commonData.totalIncome, 
+            commonData.yearsInBusiness
+        );
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    } 
+    else if (countryCode === 'uk') {
         // UK tax calculations
-        let taxableBase = totalIncome;
+        let taxableBase = commonData.totalIncome;
         let taxRegimeNote = "";
         
         // Apply Blind Person's Allowance if selected
@@ -1245,9 +1292,9 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
         const personalAllowance = 12570; // 2024 Personal Allowance
         let adjustedPersonalAllowance = personalAllowance;
         
-        if (totalIncome > 100000) {
+        if (commonData.totalIncome > 100000) {
             // Reduce personal allowance by £1 for every £2 over £100,000
-            const reduction = Math.min(personalAllowance, Math.floor((totalIncome - 100000) / 2));
+            const reduction = Math.min(personalAllowance, Math.floor((commonData.totalIncome - 100000) / 2));
             adjustedPersonalAllowance -= reduction;
             
             if (taxRegimeNote) {
@@ -1267,80 +1314,57 @@ function calculateTaxesForCountry(countryCode, totalIncome) {
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(taxableBase, adjustedBrackets);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
-    } else {
-        results.taxableBase = totalIncome;
-    }
-
-    // Income tax calculations for other countries
-    if (countryCode === 'es') {
+        
+        // Calculate UK National Insurance
+        const { socialSecurity, socialSecurityNote } = calculateUKNationalInsurance(commonData.totalIncome);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    } 
+    else if (countryCode === 'es') {
+        // Spanish calculations
         const beckhamLaw = document.getElementById('es-beckhamLaw')?.checked || false;
+        
+        // Calculate Spanish income tax
         const { totalIncomeTax, incomeTaxDetails } = calculateSpanishIncomeTax(results.taxableBase, beckhamLaw);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
-    } else if (countryCode === 'pt') {
-        const nhr = document.getElementById('pt-nhrStatus')?.checked || false;
-        const ifici = document.getElementById('pt-ifici')?.checked || false;
-        const { totalIncomeTax, incomeTaxDetails } = calculatePortugueseIncomeTax(results.taxableBase, nhr, ifici);
-        results.incomeTax = totalIncomeTax;
-        results.incomeTaxDetails = incomeTaxDetails;
-    } else if (countryCode === 'fr') {
-        // French tax calculation was already done in the previous section
-        // We don't need to do anything here as results.incomeTax and results.incomeTaxDetails
-        // were already set in the French-specific section above
-    } else if (countryCode === 'uk') {
-        // UK tax calculation was already done in the UK-specific section above
-    } else {
+        
+        // Calculate Spanish social security
+        const { socialSecurity, socialSecurityNote } = calculateSpanishSocialSecurity(commonData.totalIncome);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    }
+    else {
         // Default tax calculation for any other country
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(results.taxableBase, taxData[countryCode].incomeTaxBrackets);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
-    }
-
-    // Social security calculations remain unchanged
-    if (countryCode === 'pt') {
-        const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
-        let regime = 'Simplified Regime';
         
-        if (regimeControl) {
-            const activeButton = regimeControl.querySelector('button.active');
-            if (activeButton) {
-                regime = activeButton.value;
-            }
-        }
-        
-        const yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
-        const { socialSecurity, socialSecurityNote } = calculatePortugueseSocialSecurity(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness);
+        // Default social security calculation
+        const { socialSecurity, socialSecurityNote } = calculateOtherCountriesSocialSecurity(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
-    } else if (countryCode === 'es') {
-        const { socialSecurity, socialSecurityNote } = calculateSpanishSocialSecurity(totalIncome);
-        results.socialSecurity = socialSecurity;
-        results.socialSecurityNote = socialSecurityNote;
-    } else if (countryCode === 'uk') {
-        const { socialSecurity, socialSecurityNote } = calculateUKNationalInsurance(totalIncome);
-        results.socialSecurity = socialSecurity;
-        results.socialSecurityNote = socialSecurityNote;
-    } else {
-        if (countryCode === 'fr') {
-            const yearsInBusiness = parseInt(document.getElementById('yearsInBusiness')?.value || 0);
-            const { socialSecurity, socialSecurityNote } = calculateFrenchSocialSecurity(totalIncome, yearsInBusiness);
-            results.socialSecurity = socialSecurity;
-            results.socialSecurityNote = socialSecurityNote;
-        } else {
-            const { socialSecurity, socialSecurityNote } = calculateFrenchSocialSecurity(totalIncome);
-            results.socialSecurity = socialSecurity;
-            results.socialSecurityNote = socialSecurityNote;
-        }
     }
 
     // Final calculations
-    results.totalDeductions = parseFloat(results.incomeTax) + parseFloat(results.socialSecurity);
-    results.netIncome = totalIncome - results.totalDeductions;
-    results.effectiveTaxRate = ((results.totalDeductions / totalIncome) * 100).toFixed(2);
+    results.otherTaxes = results.otherTaxes || 0; // Default to 0 if not set
+    results.totalDeductions = parseFloat(results.incomeTax) + parseFloat(results.socialSecurity) + parseFloat(results.otherTaxes);
+    results.netIncome = commonData.totalIncome - results.totalDeductions;
+    results.effectiveTaxRate = ((results.totalDeductions / commonData.totalIncome) * 100).toFixed(2);
 
     return results;
 }
 
+function calculateTaxesForCountry(countryCode, totalIncome) {
+    // Collect common data
+    const commonData = collectCommonData();
+    
+    // Override totalIncome with the passed parameter if needed
+    commonData.totalIncome = totalIncome;
+    
+    // Calculate country-specific data
+    return calculateCountrySpecificData(countryCode, commonData);
+}
 
 // --- Main Calculation Function (Data Only) ---
 function updateCountrySelects() {
@@ -1542,266 +1566,19 @@ function displayResults(results) {
 // --- 6. Session Management and Test Data ---
 
 function saveSession() {
-    const sessionData = {
-        countries: selectedCountries,
-        incomeTypes: [],
-        questions: {},  // Store question answers
-        totalIncome: totalIncome,
-        commonQuestions: {} // Store common question answers separately
-    };
-
-    // Collect income types data
-    const incomeCheckboxes = document.querySelectorAll('.income-type input[type="checkbox"]');
-    incomeCheckboxes.forEach(checkbox => {
-        const incomeType = checkbox.dataset.incomeType;
-        const amountInput = document.getElementById(`amount-${incomeType}`);
-        sessionData.incomeTypes.push({
-            type: incomeType,
-            checked: checkbox.checked,
-            amount: amountInput.value
-        });
-    });
-
-    // Save common questions first
-    const commonQuestions = ['maritalStatus', 'children'];
-    commonQuestions.forEach(questionId => {
-        const element = document.getElementById(questionId);
-        if (element) {
-            if (questionId === 'maritalStatus') {
-                const activeButton = element.querySelector('button.active');
-                sessionData.commonQuestions[questionId] = activeButton ? activeButton.value : '';
-            } else {
-                sessionData.commonQuestions[questionId] = element.value;
-            }
-        }
-    });
-
-    // Collect country-specific question answers
-    for (const countryCode in taxData) {
-        taxData[countryCode].questions.forEach(question => {
-            if (!question.common) { // Skip common questions as they're already saved
-                const inputId = `${countryCode}-${question.id}`;
-                const inputElement = document.getElementById(inputId);
-
-                if (inputElement) {
-                    if (question.type === 'checkbox') {
-                        sessionData.questions[inputId] = inputElement.checked;
-                    } else if (question.type === 'segmented') {
-                        const activeButton = inputElement.querySelector('button.active');
-                        sessionData.questions[inputId] = activeButton ? activeButton.value : '';
-                    } else {
-                        sessionData.questions[inputId] = inputElement.value;
-                    }
-                }
-            }
-        });
-    }
-
-    const sessionKey = `TaxCalc - ${selectedCountries.join(', ')} - ${totalIncome} €`;
-    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-    alert('Session saved!');
+// ... existing code ...
 }
 
 function showSessionList() {
-    sessionSelect.innerHTML = ''; // Clear previous options
-    const option = document.createElement('option');
-    option.value = "";
-    option.textContent = "-- Select a Session --";
-    sessionSelect.appendChild(option);
-
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('TaxCalc - ')) {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = key;
-            sessionSelect.appendChild(option);
-        }
-    }
-    sessionSelect.classList.remove('hidden');
+// ... existing code ...
 }
 
 function loadSelectedSession(){
-    const selectedKey = sessionSelect.value;
-    if (selectedKey) {
-      loadSession(selectedKey);
-    }
-     sessionSelect.classList.add('hidden');
+// ... existing code ...
 }
 
 function loadSession(key) {
-    if (confirm('Loading a session will overwrite current data. Continue?')) {
-        const sessionDataString = localStorage.getItem(key);
-        if (sessionDataString) {
-            const sessionData = JSON.parse(sessionDataString);
-
-            // Restore selected countries
-            selectedCountries = sessionData.countries;
-            // Reset buttons first
-            document.querySelectorAll('.country-selector button').forEach(button => {
-                button.classList.remove('active');
-            });
-            // Activate correct buttons
-            selectedCountries.forEach(countryCode => {
-                const button = document.querySelector(`.country-selector button[data-country="${countryCode}"]`);
-                if (button) {
-                    button.classList.add('active');
-                }
-            });
-
-            // Re-render questions and income types *before* setting values
-            renderQuestions();
-            renderIncomeTypes();
-
-            // Restore common questions first
-            if (sessionData.commonQuestions) {
-                for (const [questionId, value] of Object.entries(sessionData.commonQuestions)) {
-                    const element = document.getElementById(questionId);
-                    if (element) {
-                        if (questionId === 'maritalStatus') {
-                            // For segmented controls, find the button with the saved value and activate it
-                            const button = element.querySelector(`button[value="${value}"]`);
-                            if (button) {
-                                element.querySelectorAll('button').forEach(btn => {
-                                    btn.classList.remove('active');
-                                });
-                                button.classList.add('active');
-                            }
-                        } else {
-                            element.value = value;
-                        }
-                    }
-                }
-            }
-
-            // Restore income types
-            sessionData.incomeTypes.forEach(savedIncome => {
-                const checkbox = document.getElementById(`income-${savedIncome.type}`);
-                if (checkbox) {
-                    checkbox.checked = savedIncome.checked;
-                    
-                    // Trigger the change event to show/hide fields
-                    const changeEvent = new Event('change');
-                    checkbox.dispatchEvent(changeEvent);
-                    
-                    // Set amount
-                    const amountInput = document.getElementById(`amount-${savedIncome.type}`);
-                    if (amountInput) {
-                        amountInput.value = savedIncome.amount;
-                        amountInput.disabled = !savedIncome.checked;
-                    }
-                }
-            });
-
-            // Restore country-specific question answers
-            for (const inputId in sessionData.questions) {
-                const inputElement = document.getElementById(inputId);
-                if (inputElement) {
-                    if (inputElement.type === 'checkbox') {
-                        inputElement.checked = sessionData.questions[inputId];
-                    } else if (inputElement.classList && inputElement.classList.contains('segmented-control')) {
-                        const value = sessionData.questions[inputId];
-                        const button = inputElement.querySelector(`button[value="${value}"]`);
-                        if (button) {
-                            inputElement.querySelectorAll('button').forEach(btn => {
-                                btn.classList.remove('active');
-                            });
-                            button.classList.add('active');
-                        }
-                    } else {
-                        inputElement.value = sessionData.questions[inputId];
-                    }
-                }
-            }
-        }
-    }
-}
-
-function resetData() {
-    selectedCountries = [];
-    document.querySelectorAll('.country-selector button').forEach(button => {
-        button.classList.remove('active');
-    });
-    totalIncome = 0;
-
-    // Clear results table
-    resultsTable.innerHTML = '';
-    
-    // Re-render the UI components
-    renderIncomeTypes();
-    renderQuestions();
-    renderTaxBenefits();
-}
-
-function fillTestData() {
-    // Start with a clean slate
-    selectedCountries = [];
-    document.querySelectorAll('.country-selector button').forEach(button => {
-        button.classList.remove('active');
-    });
-    
-    // Select all countries
-    toggleCountry('fr');
-    toggleCountry('es');
-    toggleCountry('pt');
-    toggleCountry('uk');
-
-    // Set Sole Proprietorship income
-    const soleProprietorshipCheckbox = document.getElementById('income-soleProprietorship');
-    if (soleProprietorshipCheckbox) {
-        soleProprietorshipCheckbox.checked = true;
-        
-        // Trigger the change event to show fields
-        const changeEvent = new Event('change');
-        soleProprietorshipCheckbox.dispatchEvent(changeEvent);
-        
-        // Set amount
-        const soleProprietorshipAmount = document.getElementById('amount-soleProprietorship');
-        if (soleProprietorshipAmount) {
-            soleProprietorshipAmount.value = 80000;
-            soleProprietorshipAmount.disabled = false;
-        }
-        
-        // Set regime to Simplified Regime
-        const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
-        if (regimeControl) {
-            const simplifiedButton = regimeControl.querySelector('button[value="Simplified Regime"]');
-            if (simplifiedButton) {
-                // Remove active class from all buttons
-                regimeControl.querySelectorAll('button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                // Add active class to the Simplified Regime button
-                simplifiedButton.classList.add('active');
-            }
-        }
-        
-        // Set years in business to 1
-        const yearsInBusinessInput = document.getElementById('yearsInBusiness');
-        if (yearsInBusinessInput) {
-            yearsInBusinessInput.value = 1;
-        }
-    }
-
-    // Set marital status to Married (common question)
-    const maritalStatus = document.getElementById('maritalStatus');
-    if (maritalStatus) {
-        // For segmented controls, find the "Married" button and click it
-        const marriedButton = maritalStatus.querySelector('button[value="Married"]');
-        if (marriedButton) {
-            marriedButton.click();
-        }
-    }
-
-    // Set number of children to 2 (common question)
-    const children = document.getElementById('children');
-    if (children) {
-        children.value = 2;
-    }
-
-    // Scroll to calculate button
-    const calculateButton = document.getElementById('calculate-button');
-    calculateButton.scrollIntoView({ behavior: 'smooth' });
+// ... existing code ...
 }
 
 // --- Variables ---
@@ -1839,7 +1616,35 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listener for fill test data button
     const fillTestDataButton = document.getElementById('fill-test-data');
-    fillTestDataButton.addEventListener('click', fillTestData);
+    fillTestDataButton.addEventListener('click', () => {
+        // Create a context object with all the necessary variables and functions
+        const context = {
+            selectedCountries,
+            totalIncome,
+            resultsTable,
+            toggleCountry,
+            renderIncomeTypes,
+            renderQuestions,
+            renderTaxBenefits
+        };
+        fillTestData(context);
+    });
+    
+    // Add event listener for reset data button
+    const resetDataButton = document.getElementById('reset-data');
+    resetDataButton.addEventListener('click', () => {
+        // Create a context object with all the necessary variables and functions
+        const context = {
+            selectedCountries,
+            totalIncome,
+            resultsTable,
+            toggleCountry,
+            renderIncomeTypes,
+            renderQuestions,
+            renderTaxBenefits
+        };
+        resetData(context);
+    });
     
     updateCountrySelects();  // Initialize country selects
     renderTaxBenefits();    // Initialize tax benefits section
