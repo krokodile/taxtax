@@ -118,7 +118,6 @@ function updateQuestions() {
                         input.type = 'number';
                         input.id = countryCode + '-' + question.id; // Unique ID
                         input.min = "0";
-                         input.addEventListener('input', updateTotalIncome);
                         questionDiv.appendChild(input);
                     } else if (question.type === 'checkbox') {
                         const input = document.createElement('input');
@@ -230,17 +229,6 @@ function validateYearsInBusiness(hasSoleProprietorship, selectedCountries, years
     }
     return true;
 }
-
-function validateTotalIncome() {
-    totalIncome = parseFloat(document.getElementById('total-income')?.value || 0); // Safely get totalIncome
-    if (isNaN(totalIncome) || totalIncome <= 0) {
-        alert('Please enter a valid Total Gross Income.');
-        return false; // Prevent calculation
-    }
-    return true; // Validation successful
-}
-
-
 
 // --- 3. Event Listeners ---
 // Event listeners will be set up in the DOMContentLoaded event handler
