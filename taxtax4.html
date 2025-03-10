@@ -72,6 +72,7 @@
 // Import tax data from separate files
 import { taxData } from './js/countries/index.js';
 import { resetData, fillTestData } from './js/utils.js';
+import { calculateIncomeTaxCY, calculateSocialSecurityCY } from './js/countries/cy.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
@@ -1260,59 +1261,6 @@ function calculateSocialSecurityUK(totalIncome) {
 }
 
 // --- Cyprus (CY) Functions ---
-function calculateIncomeTaxCY(taxableBase, highSkilledResident) {
-    // Cyprus has a progressive tax system
-    // For high-skilled residents, 50% of income is exempt from tax
-    
-    let effectiveTaxableBase = highSkilledResident ? taxableBase * 0.5 : taxableBase;
-    
-    // Cyprus tax brackets for 2024
-    const cyTaxBrackets = [
-        { threshold: 0, rate: 0 },         // 0% up to €19,500
-        { threshold: 19500, rate: 0.20 },  // 20% from €19,501 to €28,000
-        { threshold: 28000, rate: 0.25 },  // 25% from €28,001 to €36,300
-        { threshold: 36300, rate: 0.30 },  // 30% from €36,301 to €60,000
-        { threshold: 60000, rate: 0.35 }   // 35% over €60,000
-    ];
-    
-    // Calculate tax using the generic function
-    const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTax(effectiveTaxableBase, cyTaxBrackets);
-    
-    // Add note about high-skilled resident exemption if applicable
-    if (highSkilledResident) {
-        incomeTaxDetails.unshift({
-            rate: 0,
-            taxableAmount: (taxableBase * 0.5).toFixed(2),
-            taxAmount: "0.00"
-        });
-    }
-    
-    return { totalIncomeTax, incomeTaxDetails };
-}
-
-function calculateSocialSecurityCY(totalIncome) {
-    // Cyprus social security rates for 2024
-    const employeeRate = 0.083; // 8.3% for employee
-    const maxContributionBase = 4840 * 12; // Monthly ceiling of €4,840 (annual: €58,080)
-    
-    let taxableBase = totalIncome;
-    let socialSecurityNote = "";
-    
-    // Apply ceiling if income exceeds maximum contribution base
-    if (taxableBase > maxContributionBase) {
-        taxableBase = maxContributionBase;
-        socialSecurityNote = "Ceiling Reached";
-    }
-    
-    // Calculate social security contribution
-    const socialSecurity = taxableBase * employeeRate;
-    
-    return { 
-        socialSecurity: socialSecurity.toFixed(2), 
-        socialSecurityNote: socialSecurityNote ? socialSecurityNote : `${(employeeRate * 100).toFixed(1)}% of income` 
-    };
-}
-
 // --- Main Calculation Functions ---
 function collectCommonData() {
     const commonData = {};
@@ -1530,12 +1478,12 @@ function calculateCountrySpecificData(countryCode, commonData) {
         
         results.taxableBase = commonData.totalIncome;
         
-        // Calculate Cyprus income tax
+        // Calculate Cyprus income tax using imported function
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxCY(results.taxableBase, highSkilledResident);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
         
-        // Calculate Cyprus social security
+        // Calculate Cyprus social security using imported function
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityCY(commonData.totalIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
