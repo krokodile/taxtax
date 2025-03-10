@@ -36,10 +36,10 @@
             
             <div id="income-types"></div>
             
-            <h2>Tax Benefits</h2>
+            <h2 id="tax-benefits-header" class="section-header">Tax Benefits</h2>
             <div id="tax-benefits-container"></div>
             
-            <h2>Questions</h2>
+            <h2 id="questions-header" class="section-header">Questions</h2>
             <div id="questions-container"></div>
         
             <button id="calculate-button" class="primary">Calculate Taxes</button>
@@ -271,6 +271,7 @@ function toggleCountry(countryCode) {
 // Function to render tax benefits section
 function renderTaxBenefits() {
     const taxBenefitsContainer = document.getElementById('tax-benefits-container');
+    const taxBenefitsHeader = document.getElementById('tax-benefits-header');
     const currentValues = {};
 
     // Store current values
@@ -297,6 +298,24 @@ function renderTaxBenefits() {
             { id: "highSkilledResident", label: "High-Skilled Resident (50% tax exemption)", type: "checkbox" }
         ]
     };
+
+    // Check if there are any tax benefits for selected countries
+    let hasBenefits = false;
+    selectedCountries.forEach(countryCode => {
+        if (taxBenefits[countryCode] && taxBenefits[countryCode].length > 0) {
+            hasBenefits = true;
+        }
+    });
+
+    // Show/hide the section based on whether there are benefits
+    if (!hasBenefits) {
+        taxBenefitsContainer.classList.add('hidden');
+        taxBenefitsHeader.classList.add('hidden');
+        return;
+    } else {
+        taxBenefitsContainer.classList.remove('hidden');
+        taxBenefitsHeader.classList.remove('hidden');
+    }
 
     // Create a table for better organization
     const table = document.createElement('table');
@@ -417,6 +436,8 @@ function renderTaxBenefits() {
 
 function renderQuestions() {
     // Use the global questionsContainer variable
+    const questionsContainer = document.getElementById('questions-container');
+    const questionsHeader = document.getElementById('questions-header');
     const currentValues = {};
 
     // Store current values
@@ -432,6 +453,7 @@ function renderQuestions() {
     questionsContainer.innerHTML = '';
 
     const addedQuestions = new Set(); // Track added questions to avoid duplicates
+    let hasQuestions = false;
 
     // First, render common questions from the first selected country
     if (selectedCountries.length > 0) {
@@ -440,6 +462,7 @@ function renderQuestions() {
             taxData[firstCountry].questions.forEach(question => {
                 if (question.common) {
                     renderQuestion(question, null, currentValues, addedQuestions);
+                    hasQuestions = true;
                 }
             });
         }
@@ -468,8 +491,18 @@ function renderQuestions() {
             if (!shouldDisplay) return;
 
             renderQuestion(question, countryCode, currentValues, addedQuestions);
+            hasQuestions = true;
         });
     });
+
+    // Show/hide the section based on whether there are questions
+    if (!hasQuestions) {
+        questionsContainer.classList.add('hidden');
+        questionsHeader.classList.add('hidden');
+    } else {
+        questionsContainer.classList.remove('hidden');
+        questionsHeader.classList.remove('hidden');
+    }
 }
 
 // Helper function to render a single question

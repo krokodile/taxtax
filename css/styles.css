@@ -215,9 +215,16 @@ table {
     border-spacing: 0;
     margin-top: 10px;
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     font-size: 12px;
+    position: relative;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 th, td {
@@ -231,6 +238,10 @@ th {
     background-color: var(--airbnb-light-gray);
     font-weight: 600;
     color: var(--airbnb-dark-gray);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 0 var(--airbnb-border);
 }
 
 th:not(:first-child) {
@@ -407,18 +418,28 @@ input:checked + .slider:before {
 #calculate-button {
     background-color: var(--airbnb-pink);
     color: white;
-    font-weight: 500;
-    padding: 5px 10px;
-    border-radius: 4px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
     border: none;
-    font-size: 13px;
-    margin-top: 8px;
+    font-size: 16px;
+    margin-top: 16px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: auto;
+    min-width: 200px;
 }
 
 #calculate-button:hover {
     background-color: #E00B41;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#calculate-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Error messages */
@@ -430,7 +451,12 @@ input:checked + .slider:before {
 
 /* Utility classes */
 .hidden {
-    display: none;
+    display: none !important;
+}
+
+.section-header {
+    margin-top: 24px;
+    margin-bottom: 12px;
 }
 
 /* Dividers */
