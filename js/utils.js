@@ -320,6 +320,12 @@ export function saveStateToURL(context = window) {
         params.set('view', viewModeToggle.checked ? 'detailed' : 'simple');
     }
     
+    // Save whether results table has content
+    const resultsTable = document.getElementById('results-table');
+    if (resultsTable && resultsTable.querySelector('tbody') && resultsTable.querySelector('tbody').children.length > 0) {
+        params.set('showResults', 'true');
+    }
+    
     // Build the URL
     const url = new URL(window.location.href);
     url.search = params.toString();
@@ -557,8 +563,9 @@ export function restoreStateFromURL(config) {
         }
     }
     
-    // Calculate taxes if requested
-    if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
+    // Calculate taxes if requested (support both showResults and calculate for backward compatibility)
+    if ((urlParams.has('showResults') && urlParams.get('showResults') === 'true') || 
+        (urlParams.has('calculate') && urlParams.get('calculate') === 'true')) {
         setTimeout(() => {
             const calculateButton = document.getElementById('calculate-button');
             if (calculateButton) {

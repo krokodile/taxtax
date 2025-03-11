@@ -375,8 +375,9 @@ export function parseURLParams(config) {
             fillTestData(context);
         }
         
-        // If calculate parameter is present, calculate taxes
-        if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
+        // If showResults or calculate parameter is present, calculate taxes (for backward compatibility)
+        if ((urlParams.has('showResults') && urlParams.get('showResults') === 'true') || 
+            (urlParams.has('calculate') && urlParams.get('calculate') === 'true')) {
             console.log('Calculating taxes from URL parameter');
             setTimeout(() => {
                 config.calculateButton.click();
