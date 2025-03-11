@@ -20,6 +20,7 @@
                         <!--<button type="button" value="USD">$ USD</button>-->
                     </div>
                 </div>
+                <button id="share-button" class="share-button">🔗 Share</button>
                 <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
                 <button id="reset-data" class="test-data-button">🔄 Reset Data</button>
             </div>
@@ -914,6 +915,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedCountries.length === 0) {
         calculateButton.disabled = true;
         calculateButton.style.opacity = '0.5';
+    }
+    
+    // Hide questions and results sections initially
+    const questionsHeader = document.getElementById('questions-header');
+    const taxBenefitsHeader = document.getElementById('tax-benefits-header');
+    const taxBenefitsContainer = document.getElementById('tax-benefits-container');
+    
+    if (questionsHeader) questionsHeader.classList.add('hidden');
+    if (questionsContainer) questionsContainer.classList.add('hidden');
+    if (taxBenefitsHeader) taxBenefitsHeader.classList.add('hidden');
+    if (taxBenefitsContainer) taxBenefitsContainer.classList.add('hidden');
+    
+    // Clear results table
+    if (resultsTable) {
+        resultsTable.innerHTML = '';
     }
     
     // Parse URL parameters

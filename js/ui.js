@@ -54,6 +54,26 @@ export function toggleCountry(countryCode, selectedCountries, renderCallbacks) {
         renderCallbacks.renderIncomeTypes();
     }
     
+    // Show or hide questions and tax benefits sections based on selected countries
+    const questionsHeader = document.getElementById('questions-header');
+    const questionsContainer = document.getElementById('questions-container');
+    const taxBenefitsHeader = document.getElementById('tax-benefits-header');
+    const taxBenefitsContainer = document.getElementById('tax-benefits-container');
+    
+    if (selectedCountries.length > 0) {
+        // Show sections if countries are selected
+        if (questionsHeader) questionsHeader.classList.remove('hidden');
+        if (questionsContainer) questionsContainer.classList.remove('hidden');
+        if (taxBenefitsHeader) taxBenefitsHeader.classList.remove('hidden');
+        if (taxBenefitsContainer) taxBenefitsContainer.classList.remove('hidden');
+    } else {
+        // Hide sections if no countries are selected
+        if (questionsHeader) questionsHeader.classList.add('hidden');
+        if (questionsContainer) questionsContainer.classList.add('hidden');
+        if (taxBenefitsHeader) taxBenefitsHeader.classList.add('hidden');
+        if (taxBenefitsContainer) taxBenefitsContainer.classList.add('hidden');
+    }
+    
     // Show a message if no countries are selected
     const calculateButton = document.getElementById('calculate-button');
     if (selectedCountries.length === 0) {
@@ -220,10 +240,35 @@ export function setupEventListeners(config) {
         });
     });
     
+    // Add event listener for share button
+    const shareButton = document.getElementById('share-button');
+    if (shareButton) {
+        shareButton.addEventListener('click', () => {
+            import('./utils.js').then(utils => {
+                utils.copyStateURLToClipboard({
+                    selectedCountries,
+                    totalIncome,
+                    resultsTable,
+                    ...renderCallbacks
+                });
+            });
+        });
+    }
+    
     // Add event listener for fill test data button
     const fillTestDataButton = document.getElementById('fill-test-data');
     if (fillTestDataButton) {
         fillTestDataButton.addEventListener('click', () => {
+            // First reset data to ensure a clean state
+            resetData({
+                selectedCountries,
+                totalIncome,
+                resultsTable,
+                toggleCountry: (code) => toggleCountry(code, selectedCountries, renderCallbacks),
+                ...renderCallbacks
+            });
+            
+            // Then fill with test data
             fillTestData({
                 selectedCountries,
                 totalIncome,
@@ -245,6 +290,22 @@ export function setupEventListeners(config) {
                 toggleCountry: (code) => toggleCountry(code, selectedCountries, renderCallbacks),
                 ...renderCallbacks
             });
+            
+            // Hide questions and results sections
+            const questionsHeader = document.getElementById('questions-header');
+            const questionsContainer = document.getElementById('questions-container');
+            const taxBenefitsHeader = document.getElementById('tax-benefits-header');
+            const taxBenefitsContainer = document.getElementById('tax-benefits-container');
+            
+            if (questionsHeader) questionsHeader.classList.add('hidden');
+            if (questionsContainer) questionsContainer.classList.add('hidden');
+            if (taxBenefitsHeader) taxBenefitsHeader.classList.add('hidden');
+            if (taxBenefitsContainer) taxBenefitsContainer.classList.add('hidden');
+            
+            // Clear results table
+            if (resultsTable) {
+                resultsTable.innerHTML = '';
+            }
         });
     }
     
@@ -289,35 +350,51 @@ export function setupEventListeners(config) {
 export function parseURLParams(config) {
     const urlParams = new URLSearchParams(window.location.search);
     
-    if (urlParams.has('fillTestData') && urlParams.get('fillTestData') === 'true') {
-        console.log('Filling test data from URL parameter');
-        const context = {
-            selectedCountries: config.selectedCountries,
-            totalIncome: config.totalIncome,
-            resultsTable: config.resultsTable,
-            toggleCountry,
-            ...config.renderCallbacks
-        };
-        fillTestData(context);
-    }
-    
-    if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
-        console.log('Calculating taxes from URL parameter');
-        setTimeout(() => {
-            config.calculateButton.click();
-        }, 500);
-    }
-    
-    if (urlParams.has('view')) {
-        const viewMode = urlParams.get('view');
-        const viewModeToggle = document.getElementById('view-mode-toggle');
+    // If there are URL parameters, restore state from them
+    if (urlParams.toString()) {
+        // Import the restoreStateFromURL function
+        import('./utils.js').then(utils => {
+            // Create a proper config object with toggleCountry function
+            const fullConfig = {
+                ...config,
+                toggleCountry: (code) => toggleCountry(code, config.selectedCountries, config.renderCallbacks)
+            };
+            utils.restoreStateFromURL(fullConfig);
+        });
+    } else {
+        // If fillTestData parameter is present, fill with test data
+        if (urlParams.has('fillTestData') && urlParams.get('fillTestData') === 'true') {
+            console.log('Filling test data from URL parameter');
+            const context = {
+                selectedCountries: config.selectedCountries,
+                totalIncome: config.totalIncome,
+                resultsTable: config.resultsTable,
+                toggleCountry: (code) => toggleCountry(code, config.selectedCountries, config.renderCallbacks),
+                ...config.renderCallbacks
+            };
+            fillTestData(context);
+        }
         
-        if (viewMode === 'detailed' && !viewModeToggle.checked) {
-            viewModeToggle.checked = true;
-            viewModeToggle.dispatchEvent(new Event('change'));
-        } else if (viewMode === 'simple' && viewModeToggle.checked) {
-            viewModeToggle.checked = false;
-            viewModeToggle.dispatchEvent(new Event('change'));
+        // If calculate parameter is present, calculate taxes
+        if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
+            console.log('Calculating taxes from URL parameter');
+            setTimeout(() => {
+                config.calculateButton.click();
+            }, 500);
+        }
+        
+        // If view parameter is present, set view mode
+        if (urlParams.has('view')) {
+            const viewMode = urlParams.get('view');
+            const viewModeToggle = document.getElementById('view-mode-toggle');
+            
+            if (viewMode === 'detailed' && !viewModeToggle.checked) {
+                viewModeToggle.checked = true;
+                viewModeToggle.dispatchEvent(new Event('change'));
+            } else if (viewMode === 'simple' && viewModeToggle.checked) {
+                viewModeToggle.checked = false;
+                viewModeToggle.dispatchEvent(new Event('change'));
+            }
         }
     }
 } 
