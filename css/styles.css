@@ -262,18 +262,28 @@ tr.highlight td {
     font-weight: 500;
 }
 
-/* Results header with toggle */
+/* Results header with share button */
 .results-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 15px;
 }
 
-.view-toggle {
+.results-header h2 {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.results-header .view-toggle {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-right: 10px;
+}
+
+.results-header .share-button {
+    white-space: nowrap;
 }
 
 #view-mode-label {
@@ -642,6 +652,7 @@ hr {
     align-items: center;
     gap: 6px;
     transition: background-color 0.2s ease;
+    margin-left: 10px;
 }
 
 .share-button:hover {
