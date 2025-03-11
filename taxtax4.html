@@ -77,6 +77,7 @@ import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './js/countries/
 import { calculateIncomeTaxFR, calculateSocialSecurityFR } from './js/countries/fr.js';
 import { calculateIncomeTaxES, calculateSocialSecurityES } from './js/countries/es.js';
 import { calculateTaxableBasePT, calculateIncomeTaxPT, calculateSocialSecurityPT } from './js/countries/pt.js';
+import { updateCountrySelects, toggleCountry, displayResults, setupEventListeners, parseURLParams } from './js/ui.js';
 
 // --- 1. Data and Constants ---
 const incomeTypes = {
@@ -239,39 +240,6 @@ function validateYearsInBusiness(hasSoleProprietorship, selectedCountries, years
 // Event listeners will be set up in the DOMContentLoaded event handler
 
 // --- 4. UI Update Functions ---
-
-function toggleCountry(countryCode) {
-    console.log('Toggling country:', countryCode);
-    const index = selectedCountries.indexOf(countryCode);
-    const button = document.querySelector(`button[data-country="${countryCode}"]`);
-    if (index > -1) {
-        selectedCountries.splice(index, 1);
-        if (button) { // Check if button exists
-            button.classList.remove('active');
-        }
-        console.log('Removed country:', countryCode);
-    } else {
-        selectedCountries.push(countryCode);
-        if (button) {
-            button.classList.add('active');
-        }
-        console.log('Added country:', countryCode);
-    }
-    console.log('Selected countries:', selectedCountries);
-    renderTaxBenefits(); // Render tax benefits after toggling a country
-    renderQuestions();
-    renderIncomeTypes();
-    
-    // Show a message if no countries are selected
-    const calculateButton = document.getElementById('calculate-button');
-    if (selectedCountries.length === 0) {
-        calculateButton.disabled = true;
-        calculateButton.style.opacity = '0.5';
-    } else {
-        calculateButton.disabled = false;
-        calculateButton.style.opacity = '1';
-    }
-}
 
 // Function to render tax benefits section
 function renderTaxBenefits() {
@@ -1221,173 +1189,6 @@ function calculateTaxes() {
     return results;
 }
 
-// --- Main Calculation Function (Data Only) ---
-function updateCountrySelects() {
-   // Use the global countrySelectsContainer variable
-    countrySelectsContainer.innerHTML = ''; // Clear previous content
-
-    // Render buttons for each country with flags
-    const countries = ['fr', 'es', 'pt', 'uk', 'cy'];
-    
-    countries.forEach(countryCode => {
-        const button = document.createElement('button');
-        button.dataset.country = countryCode;
-        button.onclick = () => toggleCountry(countryCode);
-        button.innerHTML = `${taxData[countryCode].flag} ${taxData[countryCode].name}`;
-        
-        // Add active class if country is selected
-        if (selectedCountries.includes(countryCode)) {
-            button.classList.add('active');
-        }
-        
-        countrySelectsContainer.appendChild(button);
-    });
-
-    renderIncomeTypes();
-}
-
-// --- Display Results Function (Presentation Only) ---
-
-function displayResults(results, isDetailedView) {
-    resultsTable.innerHTML = '';
-
-    if (!results) {
-        return;
-    }
-
-    // If isDetailedView is not provided, get it from the DOM
-    if (isDetailedView === undefined) {
-        isDetailedView = document.getElementById('view-mode-toggle').checked;
-    }
-
-    const headerRow = resultsTable.insertRow();
-    headerRow.appendChild(document.createElement('th'));
-
-    selectedCountries.forEach(countryCode => {
-        const th = document.createElement('th');
-        th.textContent = `${taxData[countryCode].flag} ${taxData[countryCode].name}`;
-        th.style.textAlign = 'right';
-        headerRow.appendChild(th);
-    });
-
-    // Helper function to round to nearest 100
-    const roundToNearestHundred = (value) => Math.round(value / 100) * 100;
-
-    // Return the Total Income row (sum of all incomes)
-    const totalIncomeRow = resultsTable.insertRow();
-    totalIncomeRow.insertCell().textContent = 'Total Income';
-    const totalIncome = calculateTotalIncome();
-    selectedCountries.forEach(() => { 
-        totalIncomeRow.insertCell().textContent = roundToNearestHundred(totalIncome) + " €"; 
-    });
-
-    // Display the taxable base
-    const taxableBaseRow = resultsTable.insertRow();
-    taxableBaseRow.insertCell().textContent = 'Taxable Base';
-    selectedCountries.forEach(countryCode => {
-        taxableBaseRow.insertCell().textContent = roundToNearestHundred(results[countryCode].taxableBase) + " €";
-    });
-
-    // Tax regime note and family quotient info - only in detailed view
-    if (isDetailedView) {
-        const taxRegimeNoteRow = resultsTable.insertRow();
-        taxRegimeNoteRow.insertCell().textContent = "Tax Regime Note";
-        taxRegimeNoteRow.classList.add('detailed-view-row');
-        selectedCountries.forEach(countryCode => {
-            const cell = taxRegimeNoteRow.insertCell();
-            cell.textContent = results[countryCode].taxRegimeNote || "";
-            
-            // Add family quotient calculation details for France
-            if (countryCode === 'fr' && results[countryCode].familyQuotient) {
-                const quotient = results[countryCode].familyQuotient;
-                const originalBase = results[countryCode].originalTaxableBase;
-                const perPart = originalBase / quotient;
-                cell.innerHTML += `<br>Income per part: ${roundToNearestHundred(perPart)} €`;
-            }
-        });
-    }
-
-    // Income tax details - only in detailed view
-    if (isDetailedView) {
-        selectedCountries.forEach(countryCode => {
-            results[countryCode].incomeTaxDetails.forEach(detail => {
-                const detailRow = resultsTable.insertRow();
-                detailRow.insertCell().textContent = `Income Tax (${(detail.rate * 100).toFixed(2)}%)`;
-                detailRow.classList.add('detailed-view-row');
-                selectedCountries.forEach(innerCountryCode => {
-                    if (innerCountryCode === countryCode) {
-                        detailRow.insertCell().textContent = `${roundToNearestHundred(detail.taxableAmount)} € → ${roundToNearestHundred(detail.taxAmount)} €`;
-                    } else {
-                        detailRow.insertCell().textContent = "";
-                    }
-                });
-            });
-        });
-    }
-
-    // Total income tax
-    const incomeTaxRow = resultsTable.insertRow();
-    incomeTaxRow.insertCell().textContent = 'Total Income Tax';
-    incomeTaxRow.classList.add('highlight'); // Highlight important row
-    selectedCountries.forEach(countryCode => {
-        incomeTaxRow.insertCell().textContent = roundToNearestHundred(results[countryCode].incomeTax) + " €";
-    });
-
-    // Social security
-    const socialSecurityRow = resultsTable.insertRow();
-    socialSecurityRow.insertCell().textContent = 'Social Security';
-    selectedCountries.forEach(countryCode => {
-        socialSecurityRow.insertCell().textContent = roundToNearestHundred(results[countryCode].socialSecurity) + " €";
-    });
-
-    // Social security note - only in detailed view
-    if (isDetailedView) {
-        const socialSecurityNoteRow = resultsTable.insertRow();
-        socialSecurityNoteRow.insertCell().textContent = 'Social Security Note';
-        socialSecurityNoteRow.classList.add('detailed-view-row');
-        selectedCountries.forEach(countryCode => {
-            socialSecurityNoteRow.insertCell().textContent = results[countryCode].socialSecurityNote;
-        });
-    }
-
-    // Other taxes
-    const otherTaxesRow = resultsTable.insertRow();
-    otherTaxesRow.insertCell().textContent = 'Other Taxes';
-    selectedCountries.forEach(countryCode => {
-        const otherTaxes = results[countryCode].otherTaxes || 0; // Default to 0 if undefined
-        otherTaxesRow.insertCell().textContent = roundToNearestHundred(otherTaxes) + " €";
-    });
-
-    // Total deductions
-    const totalDeductionsRow = resultsTable.insertRow();
-    totalDeductionsRow.insertCell().textContent = 'Total Deductions';
-    totalDeductionsRow.classList.add('highlight'); // Highlight important row
-    selectedCountries.forEach(countryCode => {
-        totalDeductionsRow.insertCell().textContent = roundToNearestHundred(results[countryCode].totalDeductions) + " €";
-    });
-
-    // Net income
-    const netIncomeRow = resultsTable.insertRow();
-    netIncomeRow.insertCell().textContent = 'Net Income';
-    netIncomeRow.classList.add('highlight'); // Highlight important row
-    selectedCountries.forEach(countryCode => {
-        netIncomeRow.insertCell().textContent = roundToNearestHundred(results[countryCode].netIncome) + " €";
-    });
-
-    // Effective tax rate
-    const effectiveTaxRateRow = resultsTable.insertRow();
-    effectiveTaxRateRow.insertCell().textContent = 'Effective Tax Rate';
-    effectiveTaxRateRow.classList.add('highlight'); // Highlight important row
-    selectedCountries.forEach(countryCode => {
-        effectiveTaxRateRow.insertCell().textContent = results[countryCode].effectiveTaxRate + " %";
-    });
-    
-    // Scroll to results
-    document.querySelector('.card:last-child').scrollIntoView({ behavior: 'smooth' });
-}
-
-
-
 // --- Event Listener (Modified) ---
 // Event listeners will be set up in the DOMContentLoaded event handler
 
@@ -1412,152 +1213,40 @@ document.addEventListener('DOMContentLoaded', () => {
     calculateButton = document.getElementById('calculate-button');
     resultsTable = document.getElementById('results-table');
     
-    // Add currency selector event listeners
-    const currencyButtons = document.querySelectorAll('.currency-control button');
-    currencyButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Remove active class from all currency buttons
-            currencyButtons.forEach(btn => btn.classList.remove('active'));
-            // Add active class to clicked button
-            button.classList.add('active');
-            // Update selected currency
-            selectedCurrency = button.value;
-            // Here we'll later add code to update all displayed amounts
-        });
-    });
-    
-    // Add event listener for fill test data button
-    const fillTestDataButton = document.getElementById('fill-test-data');
-    fillTestDataButton.addEventListener('click', () => {
-        // Create a context object with all the necessary variables and functions
-        const context = {
-            selectedCountries,
-            totalIncome,
-            resultsTable,
-            toggleCountry,
-            renderIncomeTypes,
+    // Initialize UI with configuration
+    const config = {
+        countrySelectsContainer,
+        questionsContainer,
+        calculateButton,
+        resultsTable,
+        selectedCountries,
+        totalIncome,
+        taxData,
+        selectedCurrency,
+        renderCallbacks: {
+            renderTaxBenefits,
             renderQuestions,
-            renderTaxBenefits
-        };
-        fillTestData(context);
-    });
+            renderIncomeTypes
+        }
+    };
     
-    // Add event listener for reset data button
-    const resetDataButton = document.getElementById('reset-data');
-    resetDataButton.addEventListener('click', () => {
-        // Create a context object with all the necessary variables and functions
-        const context = {
-            selectedCountries,
-            totalIncome,
-            resultsTable,
-            toggleCountry,
-            renderIncomeTypes,
-            renderQuestions,
-            renderTaxBenefits
-        };
-        resetData(context);
-    });
+    // Set up event listeners
+    setupEventListeners(config);
     
-    updateCountrySelects();  // Initialize country selects
-    renderTaxBenefits();    // Initialize tax benefits section
-    renderQuestions();      // Initial questions
+    // Initialize UI components
+    updateCountrySelects(config);
+    renderTaxBenefits();
+    renderQuestions();
     renderIncomeTypes();
     
     // Disable calculate button initially since no countries are selected
     if (selectedCountries.length === 0) {
         calculateButton.disabled = true;
         calculateButton.style.opacity = '0.5';
-    } else {
-        calculateButton.disabled = false;
-        calculateButton.style.opacity = '1';
-    }
-
-    // Add event listener for view mode toggle
-    const viewModeToggle = document.getElementById('view-mode-toggle');
-    const viewModeLabel = document.getElementById('view-mode-label');
-    
-    viewModeToggle.addEventListener('change', function() {
-        const isDetailedView = this.checked;
-        if (isDetailedView) {
-            viewModeLabel.textContent = 'Detailed View';
-        } else {
-            viewModeLabel.textContent = 'Simple View';
-        }
-        
-        // Recalculate and display results only if there are already calculated results
-        const existingResults = resultsTable.querySelector('tbody');
-        if (existingResults && existingResults.children.length > 0) {
-            const results = calculateTaxes();
-            if (results) {
-                displayResults(results, isDetailedView);
-            }
-        }
-    });
-
-    // Set up event listeners
-    calculateButton.addEventListener('click', () => {
-        console.log('Calculate button clicked');
-        const commonData = collectCommonData();
-        if (validateYearsInBusiness(commonData.hasSoleProprietorship, selectedCountries, commonData.yearsInBusiness)) {
-            console.log('Years in business validated');
-            const results = calculateTaxes();
-            console.log('Calculation results:', results);
-            if (results) {
-                const isDetailedView = document.getElementById('view-mode-toggle').checked;
-                displayResults(results, isDetailedView);
-                console.log('Results displayed');
-            }
-        }
-    });
-    
-    // Parse URL parameters and trigger actions
-    function parseURLParams() {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // Check for 'fillTestData' parameter
-        if (urlParams.has('fillTestData') && urlParams.get('fillTestData') === 'true') {
-            console.log('Filling test data from URL parameter');
-            // Create context object for fillTestData function
-            const context = {
-                selectedCountries,
-                totalIncome,
-                resultsTable,
-                toggleCountry,
-                renderIncomeTypes,
-                renderQuestions,
-                renderTaxBenefits
-            };
-            // Call fillTestData function
-            fillTestData(context);
-        }
-        
-        // Check for 'calculate' parameter
-        if (urlParams.has('calculate') && urlParams.get('calculate') === 'true') {
-            console.log('Calculating taxes from URL parameter');
-            // Wait a short time to ensure test data is fully loaded if that parameter was also used
-            setTimeout(() => {
-                // Trigger click on calculate button
-                calculateButton.click();
-            }, 500);
-        }
-        
-        // Check for 'view' parameter to set view mode
-        if (urlParams.has('view')) {
-            const viewMode = urlParams.get('view');
-            const viewModeToggle = document.getElementById('view-mode-toggle');
-            
-            if (viewMode === 'detailed' && !viewModeToggle.checked) {
-                viewModeToggle.checked = true;
-                viewModeToggle.dispatchEvent(new Event('change'));
-            } else if (viewMode === 'simple' && viewModeToggle.checked) {
-                viewModeToggle.checked = false;
-                viewModeToggle.dispatchEvent(new Event('change'));
-            }
-        }
     }
     
-    // Call the function to parse URL parameters
-    parseURLParams();
+    // Parse URL parameters
+    parseURLParams(config);
 });
     </script>
 </body>
