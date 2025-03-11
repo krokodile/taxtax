@@ -1,16 +1,16 @@
-/* Airbnb-inspired styles with compact spacing */
+/* Stripe-inspired styles with clean spacing */
 :root {
-    --airbnb-red: #FF5A5F;
-    --airbnb-pink: #FF385C;
-    --airbnb-dark-gray: #484848;
-    --airbnb-gray: #767676;
-    --airbnb-light-gray: #F7F7F7;
-    --airbnb-border: #DDDDDD;
-    --airbnb-teal: #00A699;
-    --airbnb-green: #008489;
-    --airbnb-orange: #FC642D;
-    --airbnb-yellow: #FFB400;
-    --airbnb-purple: #914669;
+    --stripe-blue: #635BFF;
+    --stripe-dark-blue: #32325d;
+    --stripe-light-blue: #7795f8;
+    --stripe-green: #24b47e;
+    --stripe-red: #fa755a;
+    --stripe-dark-gray: #32325d;
+    --stripe-gray: #6b7c93;
+    --stripe-light-gray: #f6f9fc;
+    --stripe-border: #e6ebf1;
+    --stripe-yellow: #f5be58;
+    --stripe-purple: #9169d8;
 }
 
 * {
@@ -20,10 +20,10 @@
 }
 
 body {
-    font-family: 'Circular', -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, sans-serif;
-    color: var(--airbnb-dark-gray);
-    line-height: 1.3;
-    background-color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    color: var(--stripe-dark-gray);
+    line-height: 1.4;
+    background-color: var(--stripe-light-gray);
     margin: 0;
     padding: 0;
 }
@@ -44,53 +44,56 @@ h1 {
     font-size: 22px;
     font-weight: 600;
     margin-bottom: 10px;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
 }
 
 h2 {
     font-size: 16px;
     font-weight: 600;
     margin: 10px 0 6px;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
 }
 
 /* Card styling */
 .card {
     background-color: white;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-    padding: 10px;
-    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 16px;
+    margin-bottom: 16px;
 }
 
 /* Button styling */
 button {
     background-color: white;
-    border: 1px solid var(--airbnb-border);
+    border: 1px solid var(--stripe-border);
     border-radius: 4px;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    padding: 4px 8px;
-    transition: all 0.2s ease;
-    margin-right: 4px;
-    margin-bottom: 4px;
+    padding: 6px 12px;
+    transition: all 0.15s ease;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 button:hover {
-    border-color: var(--airbnb-dark-gray);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 button.primary {
-    background-color: var(--airbnb-teal);
-    border-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
+    border-color: var(--stripe-light-blue);
     color: white;
 }
 
 button.primary:hover {
-    background-color: #008577;
-    border-color: #008577;
+    background-color: #6a89e6;
+    border-color: #6a89e6;
+    box-shadow: 0 4px 7px rgba(50, 50, 93, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Country selector */
@@ -111,8 +114,8 @@ button.primary:hover {
 }
 
 .country-selector button.active {
-    background-color: var(--airbnb-teal);
-    border-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
+    border-color: var(--stripe-light-blue);
     color: white;
 }
 
@@ -132,7 +135,7 @@ label {
     display: block;
     font-weight: 500;
     margin-bottom: 2px;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
     font-size: 12px;
 }
 
@@ -142,7 +145,7 @@ select {
     width: 100%;
     max-width: 200px;
     padding: 4px 6px;
-    border: 1px solid var(--airbnb-border);
+    border: 1px solid var(--stripe-border);
     border-radius: 4px;
     font-size: 12px;
     margin-bottom: 3px;
@@ -156,7 +159,7 @@ input[type="checkbox"] {
 
 input:focus, select:focus {
     outline: none;
-    border-color: var(--airbnb-dark-gray);
+    border-color: var(--stripe-dark-gray);
 }
 
 /* Income types table */
@@ -170,15 +173,15 @@ input:focus, select:focus {
     text-align: left;
     font-weight: normal;
     font-size: 11px;
-    color: var(--airbnb-gray);
+    color: var(--stripe-gray);
     padding: 2px 4px 6px 4px;
-    border-bottom: 1px solid var(--airbnb-border);
+    border-bottom: 1px solid var(--stripe-border);
 }
 
 .income-types-table td {
     vertical-align: middle;
     padding: 6px 4px;
-    border-bottom: 1px solid var(--airbnb-light-gray);
+    border-bottom: 1px solid var(--stripe-light-gray);
 }
 
 .income-types-table tr:last-child td {
@@ -202,7 +205,7 @@ input[type="radio"] {
 #session-select {
     padding: 4px 6px;
     border-radius: 4px;
-    border: 1px solid var(--airbnb-border);
+    border: 1px solid var(--stripe-border);
     font-size: 12px;
     max-width: 200px;
     height: 24px;
@@ -230,18 +233,18 @@ thead {
 th, td {
     padding: 6px 8px;
     text-align: left;
-    border-bottom: 1px solid var(--airbnb-border);
+    border-bottom: 1px solid var(--stripe-border);
     font-size: 12px;
 }
 
 th {
-    background-color: var(--airbnb-light-gray);
+    background-color: var(--stripe-light-gray);
     font-weight: 600;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 1px 0 var(--airbnb-border);
+    box-shadow: 0 1px 0 var(--stripe-border);
 }
 
 th:not(:first-child) {
@@ -258,7 +261,7 @@ td:not(:first-child) {
 
 /* Highlight important rows */
 tr.highlight td {
-    background-color: rgba(255, 56, 92, 0.05);
+    background-color: rgba(99, 91, 255, 0.05);
     font-weight: 500;
 }
 
@@ -288,7 +291,7 @@ tr.highlight td {
 
 #view-mode-label {
     font-size: 12px;
-    color: var(--airbnb-gray);
+    color: var(--stripe-gray);
 }
 
 /* Toggle Switch */
@@ -312,7 +315,7 @@ tr.highlight td {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--airbnb-light-gray);
+    background-color: var(--stripe-light-gray);
     transition: .4s;
 }
 
@@ -328,11 +331,11 @@ tr.highlight td {
 }
 
 input:checked + .slider {
-    background-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
 }
 
 input:focus + .slider {
-    box-shadow: 0 0 1px var(--airbnb-teal);
+    box-shadow: 0 0 1px var(--stripe-light-blue);
 }
 
 input:checked + .slider:before {
@@ -350,8 +353,8 @@ input:checked + .slider:before {
 /* Detailed view rows */
 .detailed-view-row {
     font-size: 11px;
-    color: var(--airbnb-gray);
-    background-color: var(--airbnb-light-gray);
+    color: var(--stripe-gray);
+    background-color: var(--stripe-light-gray);
 }
 
 /* Segmented Control */
@@ -359,7 +362,7 @@ input:checked + .slider:before {
     display: flex;
     border-radius: 4px;
     overflow: hidden;
-    border: 1px solid var(--airbnb-border);
+    border: 1px solid var(--stripe-border);
     width: fit-content;
     margin-bottom: 8px;
     max-width: 100%;
@@ -391,8 +394,8 @@ input:checked + .slider:before {
     padding: 4px 10px;
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
-    border-right: 1px solid var(--airbnb-border);
+    transition: all 0.15s ease;
+    border-right: 1px solid var(--stripe-border);
     white-space: nowrap;
     flex: 1 0 auto;
     min-width: 80px;
@@ -403,7 +406,7 @@ input:checked + .slider:before {
 }
 
 .segmented-control button.active {
-    background-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
     color: white;
 }
 
@@ -416,7 +419,7 @@ input:checked + .slider:before {
     
     .segmented-control button {
         border-right: none;
-        border-bottom: 1px solid var(--airbnb-border);
+        border-bottom: 1px solid var(--stripe-border);
     }
     
     .segmented-control button:last-child {
@@ -426,35 +429,36 @@ input:checked + .slider:before {
 
 /* Calculate button */
 #calculate-button {
-    background-color: var(--airbnb-pink);
+    background-color: var(--stripe-blue);
     color: white;
     font-weight: 600;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 4px;
     border: none;
     font-size: 16px;
     margin-top: 16px;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
     width: auto;
     min-width: 200px;
+    letter-spacing: 0.025em;
 }
 
 #calculate-button:hover {
-    background-color: #E00B41;
+    background-color: #5851e1;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 #calculate-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(1px);
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Error messages */
 .error {
-    color: var(--airbnb-pink);
+    color: var(--stripe-red);
     font-size: 11px;
     margin-top: 1px;
 }
@@ -473,7 +477,7 @@ input:checked + .slider:before {
 hr {
     margin: 4px 0;
     border: none;
-    border-top: 1px solid var(--airbnb-border);
+    border-top: 1px solid var(--stripe-border);
 }
 
 /* Compact spacing */
@@ -526,7 +530,7 @@ hr {
 
 /* Currency selector styles */
 .currency-control {
-    background-color: var(--airbnb-light-gray);
+    background-color: var(--stripe-light-gray);
     padding: 2px;
     border-radius: 28px;
     display: inline-flex;
@@ -541,7 +545,7 @@ hr {
     border-radius: 24px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--airbnb-dark-gray);
+    color: var(--stripe-dark-gray);
     cursor: pointer;
     transition: all 0.2s ease;
     margin: 0;
@@ -554,26 +558,28 @@ hr {
 }
 
 .currency-control button.active {
-    background-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
     color: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Test data button */
 .test-data-button {
-    background-color: var(--airbnb-light-gray);
-    color: var(--airbnb-dark-gray);
-    border: 1px solid var(--airbnb-border);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
+    background-color: white;
+    color: var(--stripe-dark-gray);
+    border: 1px solid var(--stripe-border);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .test-data-button:hover {
-    background-color: #eaeaea;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 7px rgba(50, 50, 93, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Header with selector styles */
@@ -640,7 +646,7 @@ hr {
 
 /* Share button */
 .share-button {
-    background-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
     color: white;
     border: none;
     border-radius: 4px;
@@ -651,12 +657,15 @@ hr {
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: background-color 0.2s ease;
+    transition: all 0.15s ease;
     margin-left: 10px;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .share-button:hover {
-    background-color: var(--airbnb-green);
+    background-color: #6a89e6;
+    transform: translateY(-1px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .share-button:active {
@@ -668,11 +677,11 @@ hr {
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: var(--airbnb-teal);
+    background-color: var(--stripe-light-blue);
     color: white;
     padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
     z-index: 1000;
     font-size: 14px;
     font-weight: 500;
@@ -687,7 +696,7 @@ hr {
 }
 
 .notification.error {
-    background-color: var(--airbnb-red);
+    background-color: var(--stripe-red);
 }
 
 @media (max-width: 768px) {
