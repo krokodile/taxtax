@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --stripe-blue: #635BFF;
+  --stripe-dark-blue: #32325d;
+  --stripe-light-blue: #7795f8;
+  --stripe-green: #24b47e;
+  --stripe-red: #fa755a;
+  --stripe-dark-gray: #32325d;
+  --stripe-gray: #6b7c93;
+  --stripe-light-gray: #f6f9fc;
+  --stripe-border: #e6ebf1;
+  --stripe-yellow: #f5be58;
+  --stripe-purple: #9169d8;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-md p-4 mb-4;
+  }
+
+  .btn {
+    @apply bg-white border border-[var(--stripe-border)] rounded text-[var(--stripe-dark-gray)] cursor-pointer text-xs font-medium py-1.5 px-3 transition-all duration-150 mr-1.5 mb-1.5 shadow-sm;
+  }
+
+  .btn:hover {
+    @apply transform -translate-y-0.5 shadow;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--stripe-light-blue)] border-[var(--stripe-light-blue)] text-white;
+  }
+
+  .btn-primary:hover {
+    @apply bg-[#6a89e6] border-[#6a89e6] shadow-md;
+  }
+
+  .country-selector {
+    @apply flex flex-wrap mb-2;
+  }
+
+  .country-selector button {
+    @apply flex items-center mr-1.5 mb-1.5 py-1 px-2 rounded-full font-medium;
+  }
+
+  .country-selector button.active {
+    @apply bg-[var(--stripe-light-blue)] border-[var(--stripe-light-blue)] text-white;
+  }
+
+  .question, .income-type {
+    @apply mb-1.5;
+  }
+
+  label {
+    @apply block font-medium mb-0.5 text-[var(--stripe-dark-gray)] text-xs;
+  }
+
+  input[type="number"], 
+  input[type="text"], 
+  select {
+    @apply w-full max-w-[200px] py-1 px-1.5 border border-[var(--stripe-border)] rounded text-xs mb-0.5 h-6;
+  }
+
+  input:focus, select:focus {
+    @apply outline-none border-[var(--stripe-dark-gray)];
+  }
+
+  table {
+    @apply w-full border-separate border-spacing-0 mt-2.5 rounded overflow-visible shadow-sm text-xs relative;
+  }
+
+  th, td {
+    @apply p-1.5 px-2 text-left border-b border-[var(--stripe-border)] text-xs;
+  }
+
+  th {
+    @apply bg-[var(--stripe-light-gray)] font-semibold text-[var(--stripe-dark-gray)] sticky top-0 z-10 shadow-[0_1px_0_var(--stripe-border)];
+  }
+
+  .header-container {
+    @apply flex justify-between items-center mb-4 flex-wrap;
+  }
+
+  .segmented-control {
+    @apply inline-flex rounded-md overflow-hidden border border-[var(--stripe-border)] shadow-sm;
+  }
+
+  .segmented-control button {
+    @apply py-1 px-2 text-xs font-medium border-r border-[var(--stripe-border)] bg-white text-[var(--stripe-dark-gray)] transition-all duration-150 shadow-none m-0 rounded-none;
+  }
+
+  .segmented-control button:last-child {
+    @apply border-r-0;
+  }
+
+  .segmented-control button.active {
+    @apply bg-[var(--stripe-light-blue)] text-white border-[var(--stripe-light-blue)];
+  }
+
+  .header-with-selector {
+    @apply flex justify-between items-center flex-wrap mb-2;
+  }
+
+  .results-header {
+    @apply flex justify-between items-center mb-2;
+  }
+
+  .footer {
+    @apply bg-white py-4 border-t border-[var(--stripe-border)] mt-8;
+  }
+
+  .footer p {
+    @apply text-center text-[var(--stripe-gray)] text-xs;
+  }
+
+  .footer a {
+    @apply text-[var(--stripe-blue)] no-underline;
+  }
+
+  .footer a:hover {
+    @apply underline;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    @apply px-2 my-3;
+  }
+  
+  .card {
+    @apply p-3 mb-3;
+  }
+  
+  table {
+    @apply text-[10px];
+  }
+} 
