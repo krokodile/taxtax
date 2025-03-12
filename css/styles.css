@@ -755,3 +755,18 @@ hr {
     color: var(--stripe-blue);
     text-decoration: underline;
 }
+
+/* Currency symbol styles */
+.currency-symbol {
+    margin-left: 5px;
+    font-weight: bold;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Style for amount input containers to properly position the currency symbol */
+input[type="number"][id^="amount-"] {
+    display: inline-block;
+    width: calc(100% - 30px);
+    margin-right: 5px;
+}

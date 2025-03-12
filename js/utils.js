@@ -577,4 +577,114 @@ export function restoreStateFromURL(config) {
             }
         }, 500);
     }
+}
+
+/**
+ * Currency conversion utilities
+ */
+
+// Exchange rates as of a specific date (can be updated as needed)
+export const exchangeRates = {
+    EUR: {
+        EUR: 1.0,
+        GBP: 0.85,
+        USD: 1.08
+    },
+    GBP: {
+        EUR: 1.18,
+        GBP: 1.0,
+        USD: 1.27
+    },
+    USD: {
+        EUR: 0.93,
+        GBP: 0.79,
+        USD: 1.0
+    }
+};
+
+// Native currencies for each country
+export const nativeCurrencies = {
+    fr: 'EUR',
+    es: 'EUR',
+    pt: 'EUR',
+    uk: 'GBP',
+    cy: 'EUR'
+};
+
+/**
+ * Converts an amount from one currency to another
+ * @param {number|string} amount - The amount to convert
+ * @param {string} fromCurrency - The currency to convert from (EUR, GBP, USD)
+ * @param {string} toCurrency - The currency to convert to (EUR, GBP, USD)
+ * @returns {number} - The converted amount
+ */
+export function convertCurrency(amount, fromCurrency, toCurrency) {
+    // Ensure amount is a number
+    const numericAmount = parseFloat(amount);
+    
+    // If amount is not a valid number, return 0
+    if (isNaN(numericAmount)) {
+        console.warn('Invalid amount passed to convertCurrency:', amount);
+        return 0;
+    }
+    
+    if (fromCurrency === toCurrency) {
+        return numericAmount;
+    }
+    
+    const rate = exchangeRates[fromCurrency][toCurrency];
+    return parseFloat((numericAmount * rate).toFixed(2));
+}
+
+/**
+ * Formats a number as currency
+ * @param {number|string} amount - The amount to format
+ * @param {string} currency - The currency code (EUR, GBP, USD)
+ * @returns {string} - The formatted currency string
+ */
+export function formatCurrency(amount, currency) {
+    const symbols = {
+        EUR: '€',
+        GBP: '£',
+        USD: '$'
+    };
+    
+    // Ensure amount is a number
+    const numericAmount = parseFloat(amount);
+    
+    // If amount is not a valid number, return 0 with currency symbol
+    if (isNaN(numericAmount)) {
+        console.warn('Invalid amount passed to formatCurrency:', amount);
+        return `${symbols[currency]}0.00`;
+    }
+    
+    return `${symbols[currency]}${numericAmount.toFixed(2)}`;
+}
+
+/**
+ * Updates currency symbols next to amount inputs when currency changes
+ * @param {string} oldCurrency - The previous currency
+ * @param {string} newCurrency - The new currency
+ */
+export function updateAmountInputs(oldCurrency, newCurrency) {
+    // Get currency symbols
+    const symbols = {
+        EUR: '€',
+        GBP: '£',
+        USD: '$'
+    };
+    
+    // Update currency symbols next to amount inputs
+    document.querySelectorAll('input[type="number"][id^="amount-"]').forEach(input => {
+        // Find or create the currency symbol element
+        let symbolElement = input.nextElementSibling;
+        if (!symbolElement || !symbolElement.classList.contains('currency-symbol')) {
+            symbolElement = document.createElement('span');
+            symbolElement.classList.add('currency-symbol');
+            input.parentNode.insertBefore(symbolElement, input.nextSibling);
+        }
+        
+        // Update the currency symbol
+        symbolElement.textContent = symbols[newCurrency];
+    });
 } 

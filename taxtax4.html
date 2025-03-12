@@ -30,8 +30,8 @@
                 <div class="currency-selector">
                     <div class="segmented-control currency-control">
                         <button type="button" value="EUR" class="active">€ EUR</button>
-                        <!--<button type="button" value="GBP">£ GBP</button>-->
-                        <!--<button type="button" value="USD">$ USD</button>-->
+                        <button type="button" value="GBP">£ GBP</button>
+                        <button type="button" value="USD">$ USD</button>
                     </div>
                 </div>
                 <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
@@ -92,7 +92,7 @@
     <script type="module" id="js-placeholder">
 // Import tax data from separate files
 import { taxData } from './js/countries/index.js';
-import { resetData, fillTestData } from './js/utils.js';
+import { resetData, fillTestData, convertCurrency, formatCurrency, updateAmountInputs } from './js/utils.js';
 import { calculateIncomeTaxCY, calculateSocialSecurityCY } from './js/countries/cy.js';
 import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './js/countries/uk.js';
 import { calculateIncomeTaxFR, calculateSocialSecurityFR } from './js/countries/fr.js';
@@ -604,6 +604,14 @@ function renderIncomeTypes() {
     incomeTypesDiv.innerHTML = '';
     const addedIncomeTypes = new Set();
 
+    // Get currency symbol
+    const selectedCurrency = document.querySelector('.currency-control button.active').value;
+    const currencySymbol = {
+        EUR: '€',
+        GBP: '£',
+        USD: '$'
+    }[selectedCurrency];
+
     // Create a table for better alignment
     const table = document.createElement('table');
     table.className = 'income-types-table';
@@ -689,7 +697,13 @@ function renderIncomeTypes() {
             amountInput.disabled = true;
             amountInput.style.width = '100px';
             
+            // Add currency symbol
+            const symbolElement = document.createElement('span');
+            symbolElement.classList.add('currency-symbol');
+            symbolElement.textContent = currencySymbol;
+            
             amountContainer.appendChild(amountInput);
+            amountContainer.appendChild(symbolElement);
             amountCell.appendChild(amountContainer);
             row.appendChild(amountCell);
             
@@ -932,6 +946,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTaxBenefits();
     renderQuestions();
     renderIncomeTypes();
+    
+    // Initialize currency symbols next to amount inputs
+    updateAmountInputs(selectedCurrency, selectedCurrency);
     
     // Disable calculate button initially since no countries are selected
     if (selectedCountries.length === 0) {

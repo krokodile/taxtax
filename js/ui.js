@@ -1,5 +1,5 @@
 // Import utility functions
-import { fillTestData, resetData } from './utils.js';
+import { fillTestData, resetData, convertCurrency, updateAmountInputs, formatCurrency } from './utils.js';
 import { collectCommonData, calculateTaxes, validateYearsInBusiness, calculateTotalIncome } from './calculations.js';
 
 // UI Functions
@@ -85,7 +85,7 @@ export function toggleCountry(countryCode, selectedCountries, renderCallbacks) {
     }
 }
 
-export function displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView) {
+export function displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView, selectedCurrency) {
     resultsTable.innerHTML = '';
 
     if (!results) {
@@ -108,16 +108,22 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
     // Return the Total Income row (sum of all incomes)
     const totalIncomeRow = resultsTable.insertRow();
     totalIncomeRow.insertCell().textContent = 'Total Income';
-    const totalIncome = results[selectedCountries[0]].taxableBase; // Use the first country's taxable base as total income
+    
+    // Use the original income value, not the converted taxableBase
+    // This ensures the displayed income doesn't change when currency changes
+    const totalIncome = calculateTotalIncome(); // Get the actual input value
+    
     selectedCountries.forEach(() => { 
-        totalIncomeRow.insertCell().textContent = roundToNearestHundred(totalIncome) + " €"; 
+        totalIncomeRow.insertCell().textContent = formatCurrency(roundToNearestHundred(totalIncome), selectedCurrency); 
     });
 
     // Display the taxable base
     const taxableBaseRow = resultsTable.insertRow();
     taxableBaseRow.insertCell().textContent = 'Taxable Base';
     selectedCountries.forEach(countryCode => {
-        taxableBaseRow.insertCell().textContent = roundToNearestHundred(results[countryCode].taxableBase) + " €";
+        // For taxable base, we still use the converted value from results
+        // as this is calculated differently for each country
+        taxableBaseRow.insertCell().textContent = formatCurrency(roundToNearestHundred(results[countryCode].taxableBase), selectedCurrency);
     });
 
     // Tax regime note and family quotient info - only in detailed view
@@ -134,7 +140,7 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
                 const quotient = results[countryCode].familyQuotient;
                 const originalBase = results[countryCode].originalTaxableBase;
                 const perPart = originalBase / quotient;
-                cell.innerHTML += `<br>Income per part: ${roundToNearestHundred(perPart)} €`;
+                cell.innerHTML += `<br>Income per part: ${formatCurrency(roundToNearestHundred(perPart), selectedCurrency)}`;
             }
         });
     }
@@ -148,7 +154,7 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
                 detailRow.classList.add('detailed-view-row');
                 selectedCountries.forEach(innerCountryCode => {
                     if (innerCountryCode === countryCode) {
-                        detailRow.insertCell().textContent = `${roundToNearestHundred(detail.taxableAmount)} € → ${roundToNearestHundred(detail.taxAmount)} €`;
+                        detailRow.insertCell().textContent = `${formatCurrency(roundToNearestHundred(detail.taxableAmount), selectedCurrency)} → ${formatCurrency(roundToNearestHundred(detail.taxAmount), selectedCurrency)}`;
                     } else {
                         detailRow.insertCell().textContent = "";
                     }
@@ -162,14 +168,14 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
     incomeTaxRow.insertCell().textContent = 'Total Income Tax';
     incomeTaxRow.classList.add('highlight');
     selectedCountries.forEach(countryCode => {
-        incomeTaxRow.insertCell().textContent = roundToNearestHundred(results[countryCode].incomeTax) + " €";
+        incomeTaxRow.insertCell().textContent = formatCurrency(roundToNearestHundred(results[countryCode].incomeTax), selectedCurrency);
     });
 
     // Social security
     const socialSecurityRow = resultsTable.insertRow();
     socialSecurityRow.insertCell().textContent = 'Social Security';
     selectedCountries.forEach(countryCode => {
-        socialSecurityRow.insertCell().textContent = roundToNearestHundred(results[countryCode].socialSecurity) + " €";
+        socialSecurityRow.insertCell().textContent = formatCurrency(roundToNearestHundred(results[countryCode].socialSecurity), selectedCurrency);
     });
 
     // Social security note - only in detailed view
@@ -187,7 +193,7 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
     otherTaxesRow.insertCell().textContent = 'Other Taxes';
     selectedCountries.forEach(countryCode => {
         const otherTaxes = results[countryCode].otherTaxes || 0;
-        otherTaxesRow.insertCell().textContent = roundToNearestHundred(otherTaxes) + " €";
+        otherTaxesRow.insertCell().textContent = formatCurrency(roundToNearestHundred(otherTaxes), selectedCurrency);
     });
 
     // Total deductions
@@ -195,7 +201,7 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
     totalDeductionsRow.insertCell().textContent = 'Total Deductions';
     totalDeductionsRow.classList.add('highlight');
     selectedCountries.forEach(countryCode => {
-        totalDeductionsRow.insertCell().textContent = roundToNearestHundred(results[countryCode].totalDeductions) + " €";
+        totalDeductionsRow.insertCell().textContent = formatCurrency(roundToNearestHundred(results[countryCode].totalDeductions), selectedCurrency);
     });
 
     // Net income
@@ -203,7 +209,7 @@ export function displayResults(results, selectedCountries, taxData, resultsTable
     netIncomeRow.insertCell().textContent = 'Net Income';
     netIncomeRow.classList.add('highlight');
     selectedCountries.forEach(countryCode => {
-        netIncomeRow.insertCell().textContent = roundToNearestHundred(results[countryCode].netIncome) + " €";
+        netIncomeRow.insertCell().textContent = formatCurrency(roundToNearestHundred(results[countryCode].netIncome), selectedCurrency);
     });
 
     // Effective tax rate
@@ -234,9 +240,24 @@ export function setupEventListeners(config) {
     const currencyButtons = document.querySelectorAll('.currency-control button');
     currencyButtons.forEach(button => {
         button.addEventListener('click', () => {
+            const oldCurrency = config.selectedCurrency;
+            const newCurrency = button.value;
+            
+            // Update active button
             currencyButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            config.selectedCurrency = button.value;
+            
+            // Update selected currency
+            config.selectedCurrency = newCurrency;
+            
+            // Update currency symbols next to amount inputs (without changing values)
+            updateAmountInputs(oldCurrency, newCurrency);
+            
+            // If there are selected countries, recalculate taxes with the new currency
+            if (selectedCountries.length > 0) {
+                // Trigger calculation button click
+                calculateButton.click();
+            }
         });
     });
     
@@ -326,7 +347,7 @@ export function setupEventListeners(config) {
             if (existingResults && existingResults.children.length > 0) {
                 const results = calculateTaxes(selectedCountries);
                 if (results) {
-                    displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView);
+                    displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView, config.selectedCurrency);
                 }
             }
         });
@@ -342,7 +363,7 @@ export function setupEventListeners(config) {
                 const results = calculateTaxes(selectedCountries);
                 console.log('Calculation results:', results);
                 if (results) {
-                    displayResults(results, selectedCountries, taxData, resultsTable, config.isDetailedView);
+                    displayResults(results, selectedCountries, taxData, resultsTable, config.isDetailedView, config.selectedCurrency);
                     console.log('Results displayed');
                     
                     // Update URL with current state

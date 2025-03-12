@@ -49,27 +49,40 @@ function calculateIncomeTax(taxableBase, brackets) {
     return { totalIncomeTax: totalIncomeTax.toFixed(2), incomeTaxDetails };
 }
 
-export function calculateTaxableBasePT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness) {
-    let taxableBase = 0;
-    let discountFactor = 1;
-
-    // Apply discount for the first three years
-    if (yearsInBusiness === 1) {
-        discountFactor = 0.5; // 50% reduction in the first year
-    } else if (yearsInBusiness === 2) {
-        discountFactor = 0.75; // 25% reduction in the second year
+/**
+ * Calculate the taxable base for Portugal
+ * @param {number} totalIncome - The total income in EUR
+ * @param {Object} commonData - Common data object with additional information
+ * @returns {Object} - Object with taxableBase and taxableBaseNote
+ */
+export function calculateTaxableBasePT(totalIncome, commonData) {
+    let taxableBase = totalIncome;
+    let taxableBaseNote = "";
+    
+    // Check if there's sole proprietorship income
+    if (commonData.hasSoleProprietorship) {
+        const soleProprietorshipIncome = commonData.soleProprietorshipIncome;
+        const yearsInBusiness = commonData.yearsInBusiness || 0;
+        
+        // Get the regime from the UI
+        const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
+        const regime = regimeControl ? 
+            regimeControl.querySelector('button.active')?.value || 'Simplified Regime' : 
+            'Simplified Regime';
+        
+        if (regime === 'Simplified Regime') {
+            // In Simplified Regime, only 75% of income is taxable
+            const taxablePercentage = 0.75;
+            taxableBase = soleProprietorshipIncome * taxablePercentage;
+            taxableBaseNote = `Simplified Regime: ${(taxablePercentage * 100)}% of income is taxable`;
+        } else {
+            // In Organized Accounting, all income is taxable
+            taxableBase = soleProprietorshipIncome;
+            taxableBaseNote = "Organized Accounting: 100% of income is taxable";
+        }
     }
-
-    if (regime === 'Simplified Regime') {
-        // Simplified Regime: Different percentages for income tax and social security
-        taxableBase = ptSoleProprietorshipIncome * 0.75 * discountFactor; // Apply discount
-    } else if (regime === 'Organized Accounting') {
-        // Organized Accounting: Taxable base is based on accounting (income - expenses).
-        taxableBase = ptSoleProprietorshipIncome * discountFactor; // Apply discount
-    }
-    // Add other income sources *to the INCOME TAX taxable base*
-    taxableBase += (totalIncome - ptSoleProprietorshipIncome);
-    return taxableBase;
+    
+    return { taxableBase, taxableBaseNote };
 }
 
 export function calculateIncomeTaxPT(taxableBase, nhr, ifici) {
@@ -99,42 +112,60 @@ export function calculateIncomeTaxPT(taxableBase, nhr, ifici) {
     }
 }
 
-export function calculateSocialSecurityPT(ptSoleProprietorshipIncome, totalIncome, regime, yearsInBusiness, hasSoleProprietorship) {
-    const IAS = 509.26; // 2024 IAS value
-    const monthlyCeiling = 12 * IAS;
-    const monthlyFloor = IAS;
-    let taxableBaseForSS = 0;
+/**
+ * Calculate social security contributions for Portugal
+ * @param {number} totalIncome - The total income in EUR
+ * @param {Object} commonData - Common data object with additional information
+ * @returns {Object} - Object with socialSecurity and socialSecurityNote
+ */
+export function calculateSocialSecurityPT(totalIncome, commonData) {
+    let socialSecurity = 0;
     let socialSecurityNote = "";
-    let rate = 0.11; // Default rate for employment income (11% for employee part only)
-
-    // Apply discount for the first three years for sole proprietorship
-    let discountFactor = 1;
-    if (yearsInBusiness === 1) {
-        discountFactor = 0; // 50% reduction in the first year
-    } 
-
-    // Check if this is sole proprietorship income
-    if (hasSoleProprietorship) {
-        rate = 0.214; // Use 21.4% for sole proprietorship as they pay both parts
+    
+    // Check if there's sole proprietorship income
+    if (commonData.hasSoleProprietorship) {
+        const soleProprietorshipIncome = commonData.soleProprietorshipIncome;
+        const yearsInBusiness = commonData.yearsInBusiness || 0;
+        
+        // Get the regime from the UI
+        const regimeControl = document.getElementById('pt-ptSoleProprietorshipRegime');
+        const regime = regimeControl ? 
+            regimeControl.querySelector('button.active')?.value || 'Simplified Regime' : 
+            'Simplified Regime';
+        
         if (regime === 'Simplified Regime') {
-            taxableBaseForSS = (ptSoleProprietorshipIncome * 0.70 * discountFactor) / 12;
+            // In Simplified Regime, social security is calculated on 70% of income
+            const taxablePercentage = 0.70;
+            const rate = 0.214; // 21.4% for self-employed
+            
+            // First year: exempt, second year: 25%, third year: 50%, fourth year and beyond: 100%
+            let reductionFactor = 1.0;
+            if (yearsInBusiness === 0) {
+                reductionFactor = 0.0;
+                socialSecurityNote = "First year: Exempt from Social Security";
+            } else if (yearsInBusiness === 1) {
+                reductionFactor = 0.25;
+                socialSecurityNote = "Second year: 25% of normal Social Security";
+            } else if (yearsInBusiness === 2) {
+                reductionFactor = 0.5;
+                socialSecurityNote = "Third year: 50% of normal Social Security";
+            } else {
+                socialSecurityNote = `${(rate * 100).toFixed(1)}% on ${(taxablePercentage * 100)}% of income`;
+            }
+            
+            socialSecurity = soleProprietorshipIncome * taxablePercentage * rate * reductionFactor;
         } else {
-            taxableBaseForSS = (ptSoleProprietorshipIncome * discountFactor) / 12;
+            // In Organized Accounting, social security is calculated on 100% of income
+            const rate = 0.214; // 21.4% for self-employed
+            socialSecurity = soleProprietorshipIncome * rate;
+            socialSecurityNote = `${(rate * 100).toFixed(1)}% of income`;
         }
     } else {
-        // For employment income, use the regular base
-        taxableBaseForSS = totalIncome / 12;
+        // For employment income, use the standard rate
+        const rate = 0.11; // 11% for employees
+        socialSecurity = totalIncome * rate;
+        socialSecurityNote = `${(rate * 100).toFixed(1)}% of income`;
     }
-
-    // Apply ceiling/floor *monthly*
-    if (taxableBaseForSS > monthlyCeiling) {
-        taxableBaseForSS = monthlyCeiling;
-        socialSecurityNote = "Ceiling Reached";
-    } else if (taxableBaseForSS < monthlyFloor) {
-        taxableBaseForSS = monthlyFloor * discountFactor;
-        socialSecurityNote = "Floor Applied";
-    }
-
-    const socialSecurity = taxableBaseForSS * rate * 12;
+    
     return { socialSecurity: socialSecurity.toFixed(2), socialSecurityNote };
 } 
