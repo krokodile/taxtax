@@ -327,6 +327,10 @@ export function setupEventListeners(config) {
             if (resultsTable) {
                 resultsTable.innerHTML = '';
             }
+            
+            // Reset URL to remove all parameters
+            const cleanURL = window.location.protocol + '//' + window.location.host + window.location.pathname;
+            window.history.pushState({}, '', cleanURL);
         });
     }
     

@@ -655,10 +655,11 @@ export function formatCurrency(amount, currency) {
     // If amount is not a valid number, return 0 with currency symbol
     if (isNaN(numericAmount)) {
         console.warn('Invalid amount passed to formatCurrency:', amount);
-        return `${symbols[currency]}0.00`;
+        return `${symbols[currency]}0`;
     }
     
-    return `${symbols[currency]}${numericAmount.toFixed(2)}`;
+    // Format as integer without decimal places
+    return `${symbols[currency]}${Math.round(numericAmount).toLocaleString()}`;
 }
 
 /**
