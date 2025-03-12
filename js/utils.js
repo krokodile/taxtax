@@ -315,9 +315,13 @@ export function saveStateToURL(context = window) {
     });
     
     // Save view mode
-    const viewModeToggle = document.getElementById('view-mode-toggle');
-    if (viewModeToggle) {
-        params.set('view', viewModeToggle.checked ? 'detailed' : 'simple');
+    if (context.isDetailedView !== undefined) {
+        params.set('view', context.isDetailedView ? 'detailed' : 'simple');
+    } else {
+        const viewModeToggle = document.getElementById('view-mode-toggle');
+        if (viewModeToggle) {
+            params.set('view', viewModeToggle.checked ? 'detailed' : 'simple');
+        }
     }
     
     // Save whether results table has content

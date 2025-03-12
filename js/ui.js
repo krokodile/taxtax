@@ -319,6 +319,9 @@ export function setupEventListeners(config) {
             const isDetailedView = this.checked;
             viewModeLabel.textContent = isDetailedView ? 'Detailed View' : 'Simple View';
             
+            // Update the isDetailedView in the config
+            config.isDetailedView = isDetailedView;
+            
             const existingResults = resultsTable.querySelector('tbody');
             if (existingResults && existingResults.children.length > 0) {
                 const results = calculateTaxes(selectedCountries);
@@ -339,8 +342,7 @@ export function setupEventListeners(config) {
                 const results = calculateTaxes(selectedCountries);
                 console.log('Calculation results:', results);
                 if (results) {
-                    const isDetailedView = document.getElementById('view-mode-toggle').checked;
-                    displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView);
+                    displayResults(results, selectedCountries, taxData, resultsTable, config.isDetailedView);
                     console.log('Results displayed');
                     
                     // Update URL with current state
@@ -348,7 +350,8 @@ export function setupEventListeners(config) {
                         const stateUrl = utils.saveStateToURL({
                             selectedCountries,
                             totalIncome,
-                            resultsTable
+                            resultsTable,
+                            isDetailedView: config.isDetailedView
                         });
                         // Update browser URL without reloading the page
                         window.history.pushState({}, '', stateUrl);
@@ -401,13 +404,16 @@ export function parseURLParams(config) {
         if (urlParams.has('view')) {
             const viewMode = urlParams.get('view');
             const viewModeToggle = document.getElementById('view-mode-toggle');
+            const viewModeLabel = document.getElementById('view-mode-label');
             
-            if (viewMode === 'detailed' && !viewModeToggle.checked) {
+            if (viewMode === 'detailed') {
                 viewModeToggle.checked = true;
-                viewModeToggle.dispatchEvent(new Event('change'));
-            } else if (viewMode === 'simple' && viewModeToggle.checked) {
+                config.isDetailedView = true;
+                if (viewModeLabel) viewModeLabel.textContent = 'Detailed View';
+            } else if (viewMode === 'simple') {
                 viewModeToggle.checked = false;
-                viewModeToggle.dispatchEvent(new Event('change'));
+                config.isDetailedView = false;
+                if (viewModeLabel) viewModeLabel.textContent = 'Simple View';
             }
         }
     }

@@ -890,6 +890,7 @@ function calculateOtherSocialSecurity(totalIncome) {
 let selectedCountries = [];
 let totalIncome = 0;
 let selectedCurrency = 'EUR'; // Default currency
+let isDetailedView = true; // Default to detailed view
 
 // DOM Elements (will be initialized in DOMContentLoaded)
 let countrySelectsContainer;
@@ -915,6 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalIncome,
         taxData,
         selectedCurrency,
+        isDetailedView,
         renderCallbacks: {
             renderTaxBenefits,
             renderQuestions,
