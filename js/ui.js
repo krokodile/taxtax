@@ -313,6 +313,7 @@ export function setupEventListeners(config) {
     const viewModeToggle = document.getElementById('view-mode-toggle');
     const viewModeLabel = document.getElementById('view-mode-label');
     
+    
     if (viewModeToggle && viewModeLabel) {
         viewModeToggle.addEventListener('change', function() {
             const isDetailedView = this.checked;

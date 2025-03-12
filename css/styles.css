@@ -281,8 +281,18 @@ tr.highlight td {
 .results-header .view-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-right: 10px;
+    gap: 10px;
+    margin-right: 12px;
+    padding: 6px 10px;
+    background-color: #f0f4ff;
+    border-radius: 8px;
+    border: 1px solid var(--stripe-light-blue);
+    transition: all 0.2s ease;
+}
+
+.results-header .view-toggle:hover {
+    background-color: #e6edff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .results-header .share-button {
@@ -290,16 +300,25 @@ tr.highlight td {
 }
 
 #view-mode-label {
-    font-size: 12px;
-    color: var(--stripe-gray);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--stripe-dark-blue);
+    min-width: 95px;
+}
+
+.toggle-icon {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Toggle Switch */
 .switch {
     position: relative;
     display: inline-block;
-    width: 36px;
-    height: 20px;
+    width: 44px;
+    height: 24px;
 }
 
 .switch input {
@@ -315,31 +334,33 @@ tr.highlight td {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--stripe-light-gray);
-    transition: .4s;
+    background-color: #cfd8ea;
+    transition: .3s;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 14px;
-    width: 14px;
+    height: 18px;
+    width: 18px;
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: .3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 input:checked + .slider {
-    background-color: var(--stripe-light-blue);
+    background-color: var(--stripe-blue);
 }
 
 input:focus + .slider {
-    box-shadow: 0 0 1px var(--stripe-light-blue);
+    box-shadow: 0 0 3px var(--stripe-blue);
 }
 
 input:checked + .slider:before {
-    transform: translateX(16px);
+    transform: translateX(20px);
 }
 
 .slider.round {
@@ -706,4 +727,31 @@ hr {
         left: 10px;
         text-align: center;
     }
+}
+
+/* Footer styles */
+.footer {
+    background-color: var(--stripe-light-gray);
+    border-top: 1px solid var(--stripe-border);
+    padding: 16px 0;
+    margin-top: 30px;
+    text-align: center;
+}
+
+.footer p {
+    color: var(--stripe-gray);
+    font-size: 14px;
+    margin: 0;
+}
+
+.footer a {
+    color: var(--stripe-light-blue);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.footer a:hover {
+    color: var(--stripe-blue);
+    text-decoration: underline;
 }
