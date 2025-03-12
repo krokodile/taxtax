@@ -342,6 +342,18 @@ export function setupEventListeners(config) {
                     const isDetailedView = document.getElementById('view-mode-toggle').checked;
                     displayResults(results, selectedCountries, taxData, resultsTable, isDetailedView);
                     console.log('Results displayed');
+                    
+                    // Update URL with current state
+                    import('./utils.js').then(utils => {
+                        const stateUrl = utils.saveStateToURL({
+                            selectedCountries,
+                            totalIncome,
+                            resultsTable
+                        });
+                        // Update browser URL without reloading the page
+                        window.history.pushState({}, '', stateUrl);
+                        console.log('URL updated with current state');
+                    });
                 }
             }
         });

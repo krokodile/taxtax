@@ -321,7 +321,7 @@ export function saveStateToURL(context = window) {
     }
     
     // Save whether results table has content
-    const resultsTable = document.getElementById('results-table');
+    const resultsTable = context.resultsTable || document.getElementById('results-table');
     if (resultsTable && resultsTable.querySelector('tbody') && resultsTable.querySelector('tbody').children.length > 0) {
         params.set('showResults', 'true');
     }
