@@ -246,7 +246,7 @@ export function calculateCountrySpecificData(countryCode, commonData) {
     );
     
     // Use the converted income for calculations
-    const calculationIncome = totalIncomeInNativeCurrency;
+    let calculationIncome = totalIncomeInNativeCurrency;
     
     // Country-specific calculations
     if (countryCode === 'pt') {
@@ -257,48 +257,30 @@ export function calculateCountrySpecificData(countryCode, commonData) {
         results.taxRegimeNote = nhr ? "NHR Status (20% flat tax rate)" : 
                                ifici ? "IFICI Tax Benefit (20% flat tax rate)" : "";
         
-        // Calculate Portuguese taxable base using imported function
-        const { taxableBase, taxableBaseNote } = calculateTaxableBasePT(calculationIncome, commonData);
-        results.taxableBase = taxableBase;
-        results.taxableBaseNote = taxableBaseNote;
-        
-        // Calculate Portuguese income tax using imported function
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPT(results.taxableBase, nhr, ifici);
-        results.incomeTax = totalIncomeTax;
-        results.incomeTaxDetails = incomeTaxDetails;
-        
-        // Calculate Portuguese social security using imported function
+        // First calculate social security
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityPT(calculationIncome, commonData);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
+
+        // Calculate Portuguese taxable base after social security deduction
+        const { taxableBase, taxableBaseNote } = calculateTaxableBasePT(calculationIncome - parseFloat(socialSecurity), commonData);
+        results.taxableBase = taxableBase;
+        results.taxableBaseNote = taxableBaseNote;
+        
+        // Calculate Portuguese income tax using imported function on reduced base
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPT(results.taxableBase, nhr, ifici);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
     } 
     else if (countryCode === 'fr') {
         // Calculate French family quotient
-        let familyQuotient = commonData.maritalStatus === 'Married' ? 2 : 1; // Base quotient
+        let familyQuotient = commonData.maritalStatus === 'Married' ? 2 : 1;
         
-        // Add quotient for children
-        if (commonData.numChildren >= 1) familyQuotient += 0.5; // First child
-        if (commonData.numChildren >= 2) familyQuotient += 0.5; // Second child
-        if (commonData.numChildren > 2) familyQuotient += (commonData.numChildren - 2); // Third and subsequent children get 1 part each
+        if (commonData.numChildren >= 1) familyQuotient += 0.5;
+        if (commonData.numChildren >= 2) familyQuotient += 0.5;
+        if (commonData.numChildren > 2) familyQuotient += (commonData.numChildren - 2);
         
-        // Calculate taxable base with family quotient
-        results.taxableBase = calculationIncome;
-        results.familyQuotient = familyQuotient;
-        results.taxRegimeNote = `Family Quotient: ${familyQuotient} parts`;
-        
-        // Store original taxable base for display
-        results.originalTaxableBase = calculationIncome;
-        
-        // Calculate French income tax using imported function
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxFR(calculationIncome, familyQuotient);
-        results.incomeTax = totalIncomeTax;
-        results.incomeTaxDetails = incomeTaxDetails;
-        
-        if (commonData.yearsInBusiness > 0) {
-            results.taxRegimeNote += `, Years in Business: ${commonData.yearsInBusiness}`;
-        }
-        
-        // Calculate French social security using imported function
+        // First calculate social security
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityFR(
             calculationIncome, 
             commonData.yearsInBusiness,
@@ -306,25 +288,38 @@ export function calculateCountrySpecificData(countryCode, commonData) {
         );
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
+
+        // Calculate taxable base after deducting 68% of social security (French specific rule)
+        const deductibleSocialSecurity = parseFloat(socialSecurity) * 0.68;
+        results.taxableBase = calculationIncome - deductibleSocialSecurity;
+        results.familyQuotient = familyQuotient;
+        results.taxRegimeNote = `Family Quotient: ${familyQuotient} parts`;
+        
+        results.originalTaxableBase = calculationIncome;
+        
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxFR(results.taxableBase, familyQuotient);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
+        
+        if (commonData.yearsInBusiness > 0) {
+            results.taxRegimeNote += `, Years in Business: ${commonData.yearsInBusiness}`;
+        }
     } 
     else if (countryCode === 'uk') {
-        // UK tax calculations
+        // UK calculations remain the same as NICs and Income Tax are calculated separately
         let taxableBase = calculationIncome;
         let taxRegimeNote = "";
         
-        // Apply Blind Person's Allowance if selected
         const blindPersonsAllowance = commonData.taxBenefits.uk.blindPersonsAllowance;
         if (blindPersonsAllowance) {
-            taxableBase -= 3070; // 2024 Blind Person's Allowance
+            taxableBase -= 3070;
             taxRegimeNote = "Blind Person's Allowance: £3,070";
         }
         
-        // Personal Allowance reduction for high earners
-        const personalAllowance = 12570; // 2024 Personal Allowance
+        const personalAllowance = 12570;
         let adjustedPersonalAllowance = personalAllowance;
         
         if (calculationIncome > 100000) {
-            // Reduce personal allowance by £1 for every £2 over £100,000
             const reduction = Math.min(personalAllowance, Math.floor((calculationIncome - 100000) / 2));
             adjustedPersonalAllowance -= reduction;
             
@@ -337,71 +332,67 @@ export function calculateCountrySpecificData(countryCode, commonData) {
         results.taxableBase = taxableBase;
         results.taxRegimeNote = taxRegimeNote;
         
-        // Calculate income tax using the imported function
         const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxUK(taxableBase, adjustedPersonalAllowance);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
         
-        // Calculate UK National Insurance using imported function
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityUK(calculationIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     } 
     else if (countryCode === 'es') {
-        // Spanish calculations
         const beckhamLaw = commonData.taxBenefits.es.beckhamLaw;
         
-        // Set taxable base for Spain
-        results.taxableBase = calculationIncome;
+        // First calculate social security
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityES(calculationIncome, commonData);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+
+        // Set taxable base after social security deduction
+        results.taxableBase = calculationIncome - parseFloat(socialSecurity);
         
-        // Add tax regime note if Beckham Law is applied
         if (beckhamLaw) {
             results.taxRegimeNote = "Beckham's Law (24% flat tax rate up to €600,000)";
         } else {
             results.taxRegimeNote = "";
         }
         
-        // Calculate Spanish income tax
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxES(calculationIncome, beckhamLaw);
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxES(results.taxableBase, beckhamLaw);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
-        
-        // Calculate Spanish social security
-        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityES(calculationIncome, commonData);
-        results.socialSecurity = socialSecurity;
-        results.socialSecurityNote = socialSecurityNote;
     }
     else if (countryCode === 'cy') {
-        // Cyprus calculations
         const highSkilledResident = commonData.taxBenefits.cy.highSkilledResident;
         
         results.taxRegimeNote = highSkilledResident ? "High-Skilled Resident (50% tax exemption)" : "";
         
-        results.taxableBase = calculationIncome;
-        
-        // Calculate Cyprus income tax using imported function
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxCY(calculationIncome, highSkilledResident);
-        results.incomeTax = totalIncomeTax;
-        results.incomeTaxDetails = incomeTaxDetails;
-        
-        // Calculate Cyprus social security using imported function
+        // First calculate social security
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityCY(calculationIncome);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
+
+        // Calculate taxable base after social security deduction
+        results.taxableBase = calculationIncome - parseFloat(socialSecurity);
+        
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxCY(results.taxableBase, highSkilledResident);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
     }
     else if (countryCode === 'pl') {
-        // Poland calculations
         const ulgaNaStart = commonData.taxBenefits.pl.ulgaNaStart || false;
         const malyZUSPlus = commonData.taxBenefits.pl.malyZUSPlus || false;
         const preferencyjneZUS = commonData.taxBenefits.pl.preferencyjneZUS || false;
         
-        // Get tax form selection
         const taxForm = commonData.questions.pl.taxForm || 'General';
         
-        // Set taxable base for Poland
-        results.taxableBase = calculationIncome;
+        // First calculate social security
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityPL(calculationIncome, commonData);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+
+        // Set taxable base after social security deduction
+        results.taxableBase = calculationIncome - parseFloat(socialSecurity);
         
-        // Add tax regime note based on selected options
         let taxRegimeNote = `Tax Form: ${taxForm}`;
         
         if (ulgaNaStart) {
@@ -418,22 +409,14 @@ export function calculateCountrySpecificData(countryCode, commonData) {
         
         results.taxRegimeNote = taxRegimeNote;
         
-        // For lump sum, determine the appropriate rate
         let lumpSumRate = null;
         if (taxForm === 'LumpSum' && commonData.hasSoleProprietorship) {
-            // Use software development rate if applicable
-            lumpSumRate = 0.12; // 12% for software development
+            lumpSumRate = 0.12;
         }
         
-        // Calculate Polish income tax using imported function
-        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPL(calculationIncome, taxForm, lumpSumRate);
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPL(results.taxableBase, taxForm, lumpSumRate);
         results.incomeTax = totalIncomeTax;
         results.incomeTaxDetails = incomeTaxDetails;
-        
-        // Calculate Polish social security using imported function
-        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityPL(calculationIncome, commonData);
-        results.socialSecurity = socialSecurity;
-        results.socialSecurityNote = socialSecurityNote;
     }
 
     // Convert results back to selected currency
@@ -455,10 +438,8 @@ export function calculateCountrySpecificData(countryCode, commonData) {
     }
     
     // Final calculations in selected currency
-    results.otherTaxes = results.otherTaxes || 0; // Default to 0 if not set
+    results.otherTaxes = results.otherTaxes || 0;
     results.totalDeductions = parseFloat(results.incomeTax) + parseFloat(results.socialSecurity) + parseFloat(results.otherTaxes);
-    
-    // Use the original income for net income calculation, not the converted one
     results.netIncome = commonData.totalIncome - results.totalDeductions;
     results.effectiveTaxRate = ((results.totalDeductions / commonData.totalIncome) * 100).toFixed(2);
 
