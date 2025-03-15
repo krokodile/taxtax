@@ -65,10 +65,10 @@
                 <h2>Results</h2>
                 <div class="view-toggle">
                     <label class="switch">
-                        <input type="checkbox" id="view-mode-toggle" checked>
+                        <input type="checkbox" id="view-mode-toggle">
                         <span class="slider round"></span>
                     </label>
-                    <span id="view-mode-label">Detailed View</span>
+                    <span id="view-mode-label">Simple View</span>
                 </div>
                 <button id="share-button" class="share-button">🔗 Share</button>
             </div>
@@ -906,7 +906,7 @@ function calculateOtherSocialSecurity(totalIncome) {
 let selectedCountries = [];
 let totalIncome = 0;
 let selectedCurrency = 'EUR'; // Default currency
-let isDetailedView = true; // Default to detailed view
+let isDetailedView = false; // Default to simple view
 
 // DOM Elements (will be initialized in DOMContentLoaded)
 let countrySelectsContainer;
