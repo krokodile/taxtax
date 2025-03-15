@@ -4,6 +4,7 @@ import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './countries/uk.
 import { calculateIncomeTaxFR, calculateSocialSecurityFR } from './countries/fr.js';
 import { calculateIncomeTaxES, calculateSocialSecurityES } from './countries/es.js';
 import { calculateTaxableBasePT, calculateIncomeTaxPT, calculateSocialSecurityPT } from './countries/pt.js';
+import { calculateIncomeTaxPL, calculateSocialSecurityPL } from './countries/pl.js';
 import { convertCurrency, nativeCurrencies } from './utils.js';
 
 export function collectCommonData() {
@@ -38,7 +39,8 @@ export function collectCommonData() {
         pt: {},
         fr: {},
         uk: {},
-        cy: {}
+        cy: {},
+        pl: {}
     };
     
     // Get tax benefits for each country
@@ -55,6 +57,11 @@ export function collectCommonData() {
         },
         cy: {
             highSkilledResident: document.getElementById('cy-highSkilledResident')?.checked || false
+        },
+        pl: {
+            ulgaNaStart: document.getElementById('pl-ulgaNaStart')?.checked || false,
+            malyZUSPlus: document.getElementById('pl-malyZUSPlus')?.checked || false,
+            preferencyjneZUS: document.getElementById('pl-preferencyjneZUS')?.checked || false
         }
     };
     
@@ -130,6 +137,13 @@ export function calculateTaxes(selectedCountries) {
         } else if (countryCode === 'cy') {
             const highSkilledResidentCheckbox = document.getElementById('cy-highSkilledResident');
             commonData.taxBenefits.cy.highSkilledResident = highSkilledResidentCheckbox?.checked || false;
+        } else if (countryCode === 'pl') {
+            const ulgaNaStartCheckbox = document.getElementById('pl-ulgaNaStart');
+            const malyZUSPlusCheckbox = document.getElementById('pl-malyZUSPlus');
+            const preferencyjneZUSCheckbox = document.getElementById('pl-preferencyjneZUS');
+            commonData.taxBenefits.pl.ulgaNaStart = ulgaNaStartCheckbox?.checked || false;
+            commonData.taxBenefits.pl.malyZUSPlus = malyZUSPlusCheckbox?.checked || false;
+            commonData.taxBenefits.pl.preferencyjneZUS = preferencyjneZUSCheckbox?.checked || false;
         }
     });
     
@@ -372,6 +386,52 @@ export function calculateCountrySpecificData(countryCode, commonData) {
         
         // Calculate Cyprus social security using imported function
         const { socialSecurity, socialSecurityNote } = calculateSocialSecurityCY(calculationIncome);
+        results.socialSecurity = socialSecurity;
+        results.socialSecurityNote = socialSecurityNote;
+    }
+    else if (countryCode === 'pl') {
+        // Poland calculations
+        const ulgaNaStart = commonData.taxBenefits.pl.ulgaNaStart || false;
+        const malyZUSPlus = commonData.taxBenefits.pl.malyZUSPlus || false;
+        const preferencyjneZUS = commonData.taxBenefits.pl.preferencyjneZUS || false;
+        
+        // Get tax form selection
+        const taxForm = commonData.questions.pl.taxForm || 'General';
+        
+        // Set taxable base for Poland
+        results.taxableBase = calculationIncome;
+        
+        // Add tax regime note based on selected options
+        let taxRegimeNote = `Tax Form: ${taxForm}`;
+        
+        if (ulgaNaStart) {
+            taxRegimeNote += ", Ulga na Start (first 6 months)";
+        }
+        
+        if (malyZUSPlus) {
+            taxRegimeNote += ", Mały ZUS Plus (reduced contributions)";
+        }
+        
+        if (preferencyjneZUS) {
+            taxRegimeNote += ", Preferential ZUS (first 24 months)";
+        }
+        
+        results.taxRegimeNote = taxRegimeNote;
+        
+        // For lump sum, determine the appropriate rate
+        let lumpSumRate = null;
+        if (taxForm === 'LumpSum' && commonData.hasSoleProprietorship) {
+            // Use software development rate if applicable
+            lumpSumRate = 0.12; // 12% for software development
+        }
+        
+        // Calculate Polish income tax using imported function
+        const { totalIncomeTax, incomeTaxDetails } = calculateIncomeTaxPL(calculationIncome, taxForm, lumpSumRate);
+        results.incomeTax = totalIncomeTax;
+        results.incomeTaxDetails = incomeTaxDetails;
+        
+        // Calculate Polish social security using imported function
+        const { socialSecurity, socialSecurityNote } = calculateSocialSecurityPL(calculationIncome, commonData);
         results.socialSecurity = socialSecurity;
         results.socialSecurityNote = socialSecurityNote;
     }

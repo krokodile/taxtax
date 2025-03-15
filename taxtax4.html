@@ -32,6 +32,7 @@
                         <button type="button" value="EUR" class="active">€ EUR</button>
                         <button type="button" value="GBP">£ GBP</button>
                         <button type="button" value="USD">$ USD</button>
+                        <button type="button" value="PLN">zł PLN</button>
                     </div>
                 </div>
                 <button id="fill-test-data" class="test-data-button">🐛 Fill Test Data</button>
@@ -98,6 +99,7 @@ import { calculateIncomeTaxUK, calculateSocialSecurityUK } from './js/countries/
 import { calculateIncomeTaxFR, calculateSocialSecurityFR } from './js/countries/fr.js';
 import { calculateIncomeTaxES, calculateSocialSecurityES } from './js/countries/es.js';
 import { calculateTaxableBasePT, calculateIncomeTaxPT, calculateSocialSecurityPT } from './js/countries/pt.js';
+import { calculateIncomeTaxPL, calculateSocialSecurityPL } from './js/countries/pl.js';
 import { updateCountrySelects, toggleCountry, displayResults, setupEventListeners, parseURLParams } from './js/ui.js';
 
 // --- 1. Data and Constants ---

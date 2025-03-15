@@ -11,7 +11,7 @@ export function updateCountrySelects(config) {
     countrySelectsContainer.innerHTML = ''; // Clear previous content
 
     // Render buttons for each country with flags
-    const countries = ['fr', 'es', 'pt', 'uk', 'cy'];
+    const countries = ['fr', 'es', 'pt', 'uk', 'cy', 'pl'];
     
     countries.forEach(countryCode => {
         const button = document.createElement('button');

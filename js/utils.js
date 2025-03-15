@@ -588,17 +588,26 @@ export const exchangeRates = {
     EUR: {
         EUR: 1.0,
         GBP: 0.85,
-        USD: 1.08
+        USD: 1.08,
+        PLN: 4.31
     },
     GBP: {
         EUR: 1.18,
         GBP: 1.0,
-        USD: 1.27
+        USD: 1.27,
+        PLN: 5.07
     },
     USD: {
         EUR: 0.93,
         GBP: 0.79,
-        USD: 1.0
+        USD: 1.0,
+        PLN: 4.0
+    },
+    PLN: {
+        EUR: 0.232,
+        GBP: 0.197,
+        USD: 0.25,
+        PLN: 1.0
     }
 };
 
@@ -608,14 +617,15 @@ export const nativeCurrencies = {
     es: 'EUR',
     pt: 'EUR',
     uk: 'GBP',
-    cy: 'EUR'
+    cy: 'EUR',
+    pl: 'PLN'
 };
 
 /**
  * Converts an amount from one currency to another
  * @param {number|string} amount - The amount to convert
- * @param {string} fromCurrency - The currency to convert from (EUR, GBP, USD)
- * @param {string} toCurrency - The currency to convert to (EUR, GBP, USD)
+ * @param {string} fromCurrency - The currency to convert from (EUR, GBP, USD, PLN)
+ * @param {string} toCurrency - The currency to convert to (EUR, GBP, USD, PLN)
  * @returns {number} - The converted amount
  */
 export function convertCurrency(amount, fromCurrency, toCurrency) {
@@ -639,14 +649,15 @@ export function convertCurrency(amount, fromCurrency, toCurrency) {
 /**
  * Formats a number as currency
  * @param {number|string} amount - The amount to format
- * @param {string} currency - The currency code (EUR, GBP, USD)
+ * @param {string} currency - The currency code (EUR, GBP, USD, PLN)
  * @returns {string} - The formatted currency string
  */
 export function formatCurrency(amount, currency) {
     const symbols = {
         EUR: '€',
         GBP: '£',
-        USD: '$'
+        USD: '$',
+        PLN: 'zł'
     };
     
     // Ensure amount is a number
@@ -672,7 +683,8 @@ export function updateAmountInputs(oldCurrency, newCurrency) {
     const symbols = {
         EUR: '€',
         GBP: '£',
-        USD: '$'
+        USD: '$',
+        PLN: 'zł'
     };
     
     // Update currency symbols next to amount inputs

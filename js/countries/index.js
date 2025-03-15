@@ -4,11 +4,13 @@ import { taxData as esTaxData } from './es.js';
 import { taxData as ptTaxData } from './pt.js';
 import { taxData as ukTaxData } from './uk.js';
 import { taxData as cyTaxData } from './cy.js';
+import { taxData as plTaxData } from './pl.js';
 
 export const taxData = {
     fr: frTaxData,
     es: esTaxData,
     pt: ptTaxData,
     uk: ukTaxData,
-    cy: cyTaxData
+    cy: cyTaxData,
+    pl: plTaxData
 }; 
